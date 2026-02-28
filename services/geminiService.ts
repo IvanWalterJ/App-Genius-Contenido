@@ -220,8 +220,8 @@ export const generateAdCopy = async (
 
   const generateWithFallback = async () => {
     const models = [
-      "gemini-2.0-flash",   // Most stable/fast
-      "gemini-1.5-flash",   // High speed fallback
+      "gemini-2.0-flash",   // Nano Banana 2.0 (Fastest & Newest)
+      "gemini-1.5-flash",   // Stable fallback
       "gemini-1.5-pro"      // High reasoning fallback
     ];
 
@@ -353,10 +353,9 @@ export const generateSlideImage = async (
 
   // IMAGE MODEL TIERED FALLBACK
   const imgModels = [
-    'gemini-3.1-flash-image-preview', // Nano Banana 2.0
-    'imagen-3-generate-001',         // Stable Imagen 3 (often better availability than 4)
-    'imagen-4.0-generate-001',       // Imagen 4
-    'gemini-2.0-flash-image'         // Stability fallback
+    'gemini-2.0-flash',       // Nano Banana 2.0 (Imagen 3 inside)
+    'imagen-3-generate-001',  // Dedicated Imagen 3
+    'imagen-4.0-generate-001' // Imagen 4
   ];
 
   for (const model of imgModels) {
@@ -410,7 +409,7 @@ export const regenerateSlideCopy = async (
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash-latest",
+    model: "gemini-1.5-flash",
     contents: `Rewrite ad copy. Slide ${slideIndex + 1}. Context: ${projectGoal}. Old: ${currentHeadline}. Output JSON {headline, subHeadline, cta}.`,
     config: {
       responseMimeType: "application/json"
@@ -424,7 +423,7 @@ export const magicRewrite = async (text: string, tone: 'shorter' | 'punchier' | 
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash-latest",
+      model: "gemini-1.5-flash",
       contents: `Rewrite: "${text}" to be ${tone}. Spanish. Return ONLY text.`,
     });
     return response.text?.trim().replace(/^"|"$/g, '') || text;
