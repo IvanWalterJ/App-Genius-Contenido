@@ -62,6 +62,7 @@ export interface Slide {
 
   angleLabel?: string;
   videoUrl?: string | null;
+  isWinner?: boolean;
 }
 
 export interface AdProject {

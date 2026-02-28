@@ -127,16 +127,23 @@ export const generateAdCopy = async (
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   const ai = new GoogleGenAI({ apiKey });
 
-  let sysInstruction = `Rol: Director Creativo y Copywriter de Respuesta Directa (Direct Response).
+  let sysInstruction = `Rol: Director Creativo y Copywriter de Respuesta Directa (Direct Response) de Élite.
+  Tu especialidad es el "Marketing de Impacto" y la psicología de ventas de alto CTR.
+  
   Contexto de la Marca:
   - Nombre: ${brandContext.name}
   - Nicho/Industria: ${brandContext.niche}
   - Público Objetivo: ${brandContext.targetAudience}
   - Tono de Voz: ${brandContext.tone}
   
-  Objetivo Principal: Crear contenido DISRUPTIVO, CONTRAINTUITIVO y que DETENGA EL SCROLL (Scroll-stopping).
-  Debes evitar los clichés del marketing tradicional. Usa psicología inversa, curiosidad extrema, o verdades incómodas.
-  El contenido debe estar optimizado para maximizar el CTR (Click-Through Rate) y la retención.
+  Misión: Generar un copy que sea IMPOSIBLE de ignorar (Scroll-stopping).
+  
+  ESTRATEGIAS DE ÉXITO:
+  1. FOMO y Urgencia: Crear una necesidad inmediata.
+  2. Curiosidad Intensa: Abrir un bucle mental con un "Gancho" poderoso.
+  3. Ángulo Disruptivo: Ir en contra de lo convencional para captar atención.
+  4. Beneficio de 2do Nivel: No vendas la característica, vende la transformación.
+  5. Lenguaje de Acción: Usa verbos fuertes, evita la voz pasiva.
   
   Tema a tratar: "${prompt}"
   `;
@@ -213,7 +220,7 @@ export const generateAdCopy = async (
 
   const generateWithFallback = async () => {
     const models = [
-      "gemini-2.0-flash",   // Latest stable/optimized
+      "gemini-2.0-flash",   // Most stable/fast
       "gemini-1.5-flash",   // High speed fallback
       "gemini-1.5-pro"      // High reasoning fallback
     ];

@@ -52,8 +52,8 @@ const App: React.FC = () => {
     // Editor Tabs
     const [editorTab, setEditorTab] = useState<'text' | 'image' | 'design' | 'video'>('text');
 
-    // Sidebar Mode (Create vs History)
-    const [sidebarMode, setSidebarMode] = useState<'create' | 'history'>('create');
+    // Sidebar Mode (Create vs History vs Winners)
+    const [sidebarMode, setSidebarMode] = useState<'create' | 'history' | 'winners'>('create');
     const [history, setHistory] = useState<AdProject[]>([]);
 
     // Hover preview state
@@ -164,22 +164,22 @@ const App: React.FC = () => {
 
     const handleAIError = (err: any) => {
         console.error("AI Error Captured:", err);
-        const msg = err.message || "";
+        const msg = (err.message || "").toLowerCase();
 
-        // ONLY block the UI if the key is explicitly leaked or if we get a persistent permission denied
-        // A 'NOT_FOUND' (404) often means a specific model alias is just wrong for this API version, 
-        // so we shouldn't block the whole app for it.
-        if (msg.includes("leaked") || msg.includes("PERMISSION_DENIED")) {
+        if (msg.includes("leaked")) {
+            // Do not redirect, just show the fat message
+            setError("⛔ ERROR: Esta clave de API ha sido BLOQUEADA por Google porque se detectó como 'filtrada' (leaked). Debes generar una NUEVA clave en Google AI Studio y enviármela.");
+        } else if (msg.includes("permission_denied")) {
             setHasKey(false);
             setError("Error de autenticación: Tu llave de API no tiene permisos o ha sido bloqueada. Por favor, revisa tu cuenta de Google AI Studio.");
             const win = window as any;
             if (win.aistudio && win.aistudio.openSelectKey) {
                 win.aistudio.openSelectKey();
             }
-        } else if (msg === "ALL_AI_FAILED" || msg === "ALL_IMAGE_MODELS_FAILED") {
+        } else if (msg === "all_ai_failed" || msg === "all_image_models_failed") {
             setError("Todos los modelos de IA fallaron al generar el contenido. Esto puede ser por saturación del servicio o una restricción de tu cuenta.");
         } else {
-            setError(msg || 'Error al procesar con IA. Verifica tu conexión o cuota.');
+            setError(err.message || 'Error al procesar con IA. Verifica tu conexión o cuota.');
         }
     };
 
@@ -521,15 +521,21 @@ const App: React.FC = () => {
                 <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/5">
                     <button
                         onClick={() => setSidebarMode('create')}
-                        className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${sidebarMode === 'create' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-white'}`}
+                        className={`flex-1 py-3 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 transition-all ${sidebarMode === 'create' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-white'}`}
                     >
-                        <Sparkles className="w-4 h-4" /> CREAR
+                        <Sparkles className="w-3.5 h-3.5" /> CREAR
                     </button>
                     <button
                         onClick={() => setSidebarMode('history')}
-                        className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${sidebarMode === 'history' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-white'}`}
+                        className={`flex-1 py-3 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 transition-all ${sidebarMode === 'history' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-white'}`}
                     >
-                        <History className="w-4 h-4" /> HISTORIAL
+                        <History className="w-3.5 h-3.5" /> HISTORIAL
+                    </button>
+                    <button
+                        onClick={() => setSidebarMode('winners')}
+                        className={`flex-1 py-3 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 transition-all ${sidebarMode === 'winners' ? 'bg-amber-500 text-black shadow-lg' : 'text-neutral-500 hover:text-white'}`}
+                    >
+                        <Crown className="w-3.5 h-3.5" /> WINNERS
                     </button>
                 </div>
 
@@ -583,11 +589,14 @@ const App: React.FC = () => {
                                         onChange={(e) => setBrandContext({ ...brandContext, tone: e.target.value })}
                                         className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-1 ring-yellow-500/50 outline-none transition-all text-neutral-300"
                                     >
-                                        <option value="Profesional y Persuasivo">Profesional y Persuasivo</option>
-                                        <option value="Disruptivo y Agresivo">Disruptivo y Agresivo</option>
-                                        <option value="Cercano y Amigable">Cercano y Amigable</option>
-                                        <option value="Lujoso y Exclusivo">Lujoso y Exclusivo</option>
-                                        <option value="Divertido e Irreverente">Divertido e Irreverente</option>
+                                        <option value="Profesional y Persuasivo">👔 Profesional y Persuasivo</option>
+                                        <option value="Disruptivo y Agresivo">⚡ Disruptivo y Agresivo</option>
+                                        <option value="Cercano y Amigable">🤝 Cercano y Amigable</option>
+                                        <option value="Lujoso y Exclusivo">💎 Lujoso y Exclusivo</option>
+                                        <option value="Divertido e Irreverente">😜 Divertido e Irreverente</option>
+                                        <option value="Urgencia y Escasez (FOMO)">⏳ Urgencia y Escasez (FOMO)</option>
+                                        <option value="Educativo y Autoridad">🎓 Educativo y Autoridad</option>
+                                        <option value="Inspiracional y Emotivo">✨ Inspiracional y Emotivo</option>
                                     </select>
                                 </div>
                             </div>
@@ -726,8 +735,8 @@ const App: React.FC = () => {
                             {status === 'idle' || status === 'done' || status === 'error' ? 'GENERAR CAMPAÑA' : <><Loader2 className="w-6 h-6 animate-spin" /> PROCESANDO...</>}
                         </button>
                     </div>
-                ) : (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 h-full overflow-y-auto">
+                ) : sidebarMode === 'history' ? (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 h-full overflow-y-auto no-scrollbar">
                         {history.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-64 text-center p-8 border border-dashed border-white/10 rounded-2xl">
                                 <History className="w-8 h-8 text-neutral-600 mb-4" />
@@ -774,6 +783,31 @@ const App: React.FC = () => {
                                         Solo se guardan los últimos 5 proyectos localmente para optimizar el rendimiento.
                                     </p>
                                 </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 h-full overflow-y-auto no-scrollbar pb-10">
+                        {history.flatMap(p => (p.slides || []).filter(s => s.isWinner).map(s => ({ ...s, projectId: p.id, projectTitle: p.title }))).length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-64 text-center p-8 border border-dashed border-white/10 rounded-2xl">
+                                <Crown className="w-8 h-8 text-neutral-600 mb-4" />
+                                <p className="text-sm font-bold text-neutral-500">No hay Winners aún</p>
+                                <p className="text-xs text-neutral-600 mt-1">Marca tus mejores diseños con la corona para guardarlos aquí.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-4">
+                                {history.flatMap(p => (p.slides || []).filter(s => s.isWinner).map(s => ({ ...s, projectId: p.id, projectTitle: p.title, visualStyle: p.visualStyle, aspectRatio: p.aspectRatio, fullProject: p }))).map((s, idx) => (
+                                    <div key={`${s.projectId}-${idx}`} onClick={() => loadProject(s.fullProject)} className="group relative bg-neutral-900/50 border border-white/5 p-3 rounded-2xl hover:bg-neutral-800 transition-all overflow-hidden cursor-pointer">
+                                        <div className="aspect-square w-full rounded-xl overflow-hidden mb-3 bg-black relative">
+                                            {s.backgroundImageUrl ? <img src={s.backgroundImageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full bg-neutral-800 flex items-center justify-center"><ImageIcon className="w-6 h-6 text-neutral-600" /></div>}
+                                            <div className="absolute top-2 right-2 p-1.5 bg-amber-500 rounded-lg shadow-lg">
+                                                <Crown className="w-3 h-3 text-black fill-black" />
+                                            </div>
+                                        </div>
+                                        <h4 className="text-xs font-bold text-white line-clamp-1">{s.headline.replace(/\*/g, '')}</h4>
+                                        <p className="text-[10px] text-neutral-500 mt-1 font-bold tracking-widest">{s.projectTitle}</p>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
@@ -839,6 +873,13 @@ const App: React.FC = () => {
                                 <h2 className="text-4xl font-black uppercase tracking-tighter max-w-3xl leading-none mt-2">{project.title}</h2>
                             </div>
                             <div className="flex gap-4">
+                                <button
+                                    onClick={() => updateSlide(activeSlideIdx, { isWinner: !project.slides[activeSlideIdx].isWinner })}
+                                    className={`p-4 rounded-xl transition-all border ${project.slides[activeSlideIdx].isWinner ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] border-amber-500 text-black' : 'bg-neutral-900 border-white/10 text-neutral-500 hover:text-white'}`}
+                                    title="Marcar como Winner"
+                                >
+                                    <Crown className={`w-6 h-6 ${project.slides[activeSlideIdx].isWinner ? 'fill-black' : ''}`} />
+                                </button>
                                 <button onClick={() => setShowSafeZones(!showSafeZones)} className={`p-4 rounded-xl transition-all border ${showSafeZones ? 'bg-cyan-500/20 border-cyan-400 text-cyan-400' : 'bg-neutral-900 border-white/10 text-neutral-500 hover:text-white'}`} title="Mostrar Zonas Seguras"><LayoutTemplate className="w-6 h-6" /></button>
                                 <button onClick={handleDownloadCurrent} disabled={isExporting} className="flex items-center gap-3 px-8 py-4 bg-white text-black rounded-xl font-black text-sm transition-all hover:scale-105 active:scale-95 shadow-[0_0_30px_rgba(255,255,255,0.2)] disabled:opacity-50">
                                     {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />} DESCARGAR
