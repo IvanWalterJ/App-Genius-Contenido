@@ -91,7 +91,7 @@ export const enhancePrompt = async (rawPrompt: string): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash-latest", // Standard stable model for tasks
+      model: "gemini-1.5-flash", // More stable alias
       contents: `Rewrite prompt for marketing. Input: "${rawPrompt}". Output Spanish. Keep it short. Return ONLY text.`,
     });
     return response.text?.trim() || rawPrompt;
@@ -208,9 +208,9 @@ export const generateAdCopy = async (
 
   const generateWithFallback = async () => {
     const models = [
-      "gemini-2.0-flash-exp",   // Try 2.0 Flash first for speed/quality
-      "gemini-1.5-pro-latest",  // Fallback to Pro
-      "gemini-1.5-flash-latest" // Final stable fallback
+      "gemini-2.0-flash",   // Latest stable/optimized
+      "gemini-1.5-flash",   // High speed fallback
+      "gemini-1.5-pro"      // High reasoning fallback
     ];
 
     for (const model of models) {
@@ -342,9 +342,9 @@ export const generateSlideImage = async (
   // IMAGE MODEL TIERED FALLBACK
   const imgModels = [
     'gemini-3.1-flash-image-preview', // Nano Banana 2.0
+    'imagen-3-generate-001',         // Stable Imagen 3 (often better availability than 4)
     'imagen-4.0-generate-001',       // Imagen 4
-    'gemini-2.0-flash-image-exp',    // New 2.0 version if exists
-    'gemini-2.5-flash-image'         // Legacy Fallback
+    'gemini-2.0-flash-image'         // Stability fallback
   ];
 
   for (const model of imgModels) {
