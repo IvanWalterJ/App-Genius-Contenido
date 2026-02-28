@@ -504,7 +504,7 @@ const App: React.FC = () => {
         <div className="min-h-screen flex flex-col md:flex-row bg-[#050505] text-white selection:bg-blue-500/30">
 
             {/* Sidebar */}
-            <aside className="w-full md:w-[450px] border-r border-white/5 p-8 flex flex-col gap-8 bg-neutral-900/40 backdrop-blur-3xl h-screen sticky top-0 overflow-y-auto no-scrollbar z-50">
+            <aside className="w-full md:w-[450px] border-r border-white/5 p-6 md:p-8 flex flex-col gap-8 bg-neutral-900/40 backdrop-blur-3xl h-auto md:h-screen md:sticky md:top-0 overflow-y-auto no-scrollbar z-50">
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-amber-600/20">
@@ -815,7 +815,7 @@ const App: React.FC = () => {
             </aside>
 
             {/* Area de Visualización */}
-            <main className="flex-1 overflow-y-auto bg-black flex flex-col items-center p-8 md:p-12 gap-10 relative">
+            <main className="flex-1 overflow-y-auto bg-black flex flex-col items-center p-4 md:p-12 gap-6 md:gap-10 relative">
                 <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-neutral-900/50 to-black pointer-events-none" />
 
                 {!project ? (
@@ -849,7 +849,7 @@ const App: React.FC = () => {
                         </div>
 
                         <div className="space-y-6 max-w-xl mx-auto relative z-20">
-                            <h2 className="text-6xl font-black uppercase tracking-tighter text-white leading-[0.9]">
+                            <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white leading-[0.9]">
                                 Generador de <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 font-serif italic font-normal">Impacto</span>
                             </h2>
                             <p className="text-neutral-400 text-xl leading-relaxed font-medium">
@@ -859,7 +859,7 @@ const App: React.FC = () => {
                         </div>
                     </div>
                 ) : (
-                    <div className="w-full max-w-7xl space-y-12 pb-32 z-10">
+                    <div className="w-full max-w-7xl space-y-8 md:space-y-12 pb-32 z-10 px-2 md:px-0">
                         {/* Header */}
                         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-8">
                             <div className="space-y-2">
@@ -870,9 +870,9 @@ const App: React.FC = () => {
                                         : <span className="text-xs text-neutral-500 font-bold uppercase tracking-widest bg-neutral-900 px-3 py-1 rounded-md border border-white/10">{refImage ? 'CLONED' : `${project.visualStyle}`}</span>
                                     }
                                 </div>
-                                <h2 className="text-4xl font-black uppercase tracking-tighter max-w-3xl leading-none mt-2">{project.title}</h2>
+                                <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tighter max-w-3xl leading-none mt-2">{project.title}</h2>
                             </div>
-                            <div className="flex gap-4">
+                            <div className="flex flex-wrap gap-3">
                                 <button
                                     onClick={() => updateSlide(activeSlideIdx, { isWinner: !project.slides[activeSlideIdx].isWinner })}
                                     className={`p-4 rounded-xl transition-all border ${project.slides[activeSlideIdx].isWinner ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] border-amber-500 text-black' : 'bg-neutral-900 border-white/10 text-neutral-500 hover:text-white'}`}
@@ -887,11 +887,11 @@ const App: React.FC = () => {
                             </div>
                         </header>
 
-                        <div className="grid grid-cols-1 xl:grid-cols-12 gap-16">
+                        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 md:gap-16">
                             {/* Canvas View */}
                             <div className="xl:col-span-7 flex flex-col items-center gap-8">
-                                <div className="relative w-full flex items-center justify-center group">
-                                    <button onClick={() => setActiveSlideIdx(Math.max(0, activeSlideIdx - 1))} className="absolute -left-16 z-30 p-5 bg-neutral-900 border border-white/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 text-white shadow-xl" disabled={activeSlideIdx === 0}><ChevronLeft className="w-8 h-8" /></button>
+                                <div className="relative w-full flex flex-col md:flex-row items-center justify-center group gap-4">
+                                    <button onClick={() => setActiveSlideIdx(Math.max(0, activeSlideIdx - 1))} className="hidden md:block absolute -left-16 z-30 p-5 bg-neutral-900 border border-white/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 text-white shadow-xl" disabled={activeSlideIdx === 0}><ChevronLeft className="w-8 h-8" /></button>
 
                                     <div className="w-full max-w-[650px] animate-in slide-in-from-right-8 duration-500 relative ring-1 ring-white/10 shadow-2xl">
                                         <div className="relative flex justify-center">
@@ -913,7 +913,14 @@ const App: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <button onClick={() => setActiveSlideIdx(Math.min(project.slides.length - 1, activeSlideIdx + 1))} className="absolute -right-16 z-30 p-5 bg-neutral-900 border border-white/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 text-white shadow-xl" disabled={activeSlideIdx === project.slides.length - 1}><ChevronRight className="w-8 h-8" /></button>
+                                    <button onClick={() => setActiveSlideIdx(Math.min(project.slides.length - 1, activeSlideIdx + 1))} className="hidden md:block absolute -right-16 z-30 p-5 bg-neutral-900 border border-white/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 text-white shadow-xl" disabled={activeSlideIdx === project.slides.length - 1}><ChevronRight className="w-8 h-8" /></button>
+
+                                    {/* Mobile Navigation */}
+                                    <div className="flex md:hidden w-full justify-between items-center px-4">
+                                        <button onClick={() => setActiveSlideIdx(Math.max(0, activeSlideIdx - 1))} className="p-3 bg-neutral-900 border border-white/10 rounded-full text-white" disabled={activeSlideIdx === 0}><ChevronLeft className="w-6 h-6" /></button>
+                                        <span className="text-xs font-bold text-neutral-500">{activeSlideIdx + 1} / {project.slides.length}</span>
+                                        <button onClick={() => setActiveSlideIdx(Math.min(project.slides.length - 1, activeSlideIdx + 1))} className="p-3 bg-neutral-900 border border-white/10 rounded-full text-white" disabled={activeSlideIdx === project.slides.length - 1}><ChevronRight className="w-6 h-6" /></button>
+                                    </div>
                                 </div>
                                 <div className="flex gap-4">
                                     {project.slides.map((_, i) => (
@@ -924,7 +931,7 @@ const App: React.FC = () => {
 
                             {/* Advanced Editor Panel */}
                             <div className="xl:col-span-5 space-y-6 animate-in slide-in-from-bottom-8 duration-500">
-                                <div className="p-6 bg-neutral-900/80 border border-white/10 rounded-[32px] space-y-6 backdrop-blur-md shadow-2xl">
+                                <div className="p-4 md:p-6 bg-neutral-900/80 border border-white/10 rounded-2xl md:rounded-[32px] space-y-6 backdrop-blur-md shadow-2xl">
 
                                     {/* Top Actions */}
                                     <div className="grid grid-cols-2 gap-3">
@@ -984,8 +991,8 @@ const App: React.FC = () => {
                                                         {!project.slides[activeSlideIdx].headlineGradient ? (
                                                             <div className="grid grid-cols-2 gap-3">
                                                                 <div className="relative h-10 rounded-xl overflow-hidden border border-white/10 cursor-pointer group col-span-1 bg-neutral-800">
-                                                                    <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white/50 group-hover:text-white transition-colors z-10 pointer-events-none uppercase tracking-widest">
-                                                                        Custom Color
+                                                                    <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/50 group-hover:text-white transition-colors z-10 pointer-events-none uppercase tracking-widest shrink-0">
+                                                                        Personalizado
                                                                     </div>
                                                                     <input
                                                                         type="color"
@@ -993,7 +1000,7 @@ const App: React.FC = () => {
                                                                         onChange={(e) => updateSlide(activeSlideIdx, { headlineColor: e.target.value })}
                                                                         className="absolute -inset-4 w-[200%] h-[200%] cursor-pointer p-0 border-0 opacity-0"
                                                                     />
-                                                                    <div className="absolute bottom-1 right-1 w-4 h-4 rounded-full border border-white/20" style={{ backgroundColor: project.slides[activeSlideIdx].headlineColor }} />
+                                                                    <div className="absolute bottom-1 right-1 w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: project.slides[activeSlideIdx].headlineColor }} />
                                                                 </div>
                                                                 <button
                                                                     onClick={toggleHeadlineBg}
