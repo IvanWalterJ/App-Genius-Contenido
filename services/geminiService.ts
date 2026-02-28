@@ -8,11 +8,11 @@ const cleanJSON = (text: string) => {
   if (!text) return "{}";
   const firstBrace = text.indexOf('{');
   const lastBrace = text.lastIndexOf('}');
-  
+
   if (firstBrace !== -1 && lastBrace !== -1) {
     return text.substring(firstBrace, lastBrace + 1);
   }
-  
+
   return text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
 };
 
@@ -68,25 +68,49 @@ const getSafeFallback = (prompt: string, style: string): any => {
   };
 };
 
+const getApiKey = () => {
+  // Try various environmental sources
+  // @ts-ignore
+  const v1 = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env.VITE_GEMINI_API_KEY : null;
+
+  // Use globalThis to safely access environment variables without triggering lint errors
+  const g = globalThis as any;
+  const v2 = g.process?.env?.VITE_GEMINI_API_KEY;
+  const v3 = g.process?.env?.GEMINI_API_KEY;
+  const v4 = g.process?.env?.API_KEY;
+
+  const key = v1 || v2 || v3 || v4;
+  if (!key) {
+    console.warn("API Key not found in any environment variable sources.");
+  }
+  return key;
+};
+
 export const enhancePrompt = async (rawPrompt: string): Promise<string> => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash-latest", // Standard stable model for tasks
       contents: `Rewrite prompt for marketing. Input: "${rawPrompt}". Output Spanish. Keep it short. Return ONLY text.`,
     });
     return response.text?.trim() || rawPrompt;
   } catch (e: any) {
+    console.error("Enhance Prompt Error:", e.message);
     if (e.message?.includes("Requested entity was not found") || e.message?.includes("leaked") || e.message?.includes("PERMISSION_DENIED")) {
-        throw e;
+      // Only throw if we think it's a key issue, but 404 might just be the model name
+      if (e.message?.includes("Requested entity was not found")) {
+        console.warn("Model not found, skipping enhancement.");
+        return rawPrompt;
+      }
+      throw e;
     }
     return rawPrompt;
   }
 };
 
 export const generateAdCopy = async (
-  prompt: string, 
+  prompt: string,
   type: 'single-image' | 'carousel' | 'angles-batch',
   intent: ContentIntent,
   style: VisualStyle,
@@ -97,7 +121,7 @@ export const generateAdCopy = async (
 ): Promise<Partial<AdProject>> => {
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   const ai = new GoogleGenAI({ apiKey });
-  
+
   let sysInstruction = `Rol: Director Creativo y Copywriter de Respuesta Directa (Direct Response).
   Contexto de la Marca:
   - Nombre: ${brandContext.name}
@@ -113,7 +137,7 @@ export const generateAdCopy = async (
   `;
 
   if (type === 'angles-batch') {
-     sysInstruction += `
+    sysInstruction += `
      Tarea: Generar 6 variaciones visuales de ALTO IMPACTO probando diferentes ángulos de marketing.
      Output JSON con 6 items en el array 'slides'.
      Ángulos a usar: Dolor Agudo, Deseo Oculto, Romper Objeción, Lógica/Datos, Urgencia/FOMO, Creativo/Meme.
@@ -122,7 +146,7 @@ export const generateAdCopy = async (
      - SubHeadline: Breve (1 línea), que complemente el gancho.
      - VisualPrompt: Describe la imagen de fondo conceptual (SIN TEXTO) para este ángulo. DEBE SER DISRUPTIVA.`;
   } else if (type === 'single-image') {
-     sysInstruction += `
+    sysInstruction += `
      Tarea: Generar 1 sola imagen publicitaria de altísimo impacto.
      Output JSON con 1 item en el array 'slides'.
      Reglas:
@@ -130,7 +154,7 @@ export const generateAdCopy = async (
      - SubHeadline: Propuesta de valor clara o curiosidad.
      - VisualPrompt: Describe una imagen de fondo que llame muchísimo la atención, inusual o de alto contraste.`;
   } else {
-     sysInstruction += `
+    sysInstruction += `
      Tarea: Crear un carrusel de 6 slides con una narrativa continua, adictiva y lógica.
      ESTRUCTURA DE COMUNICACIÓN:
      Slide 1 (Gancho): Título disruptivo/contraintuitivo que obligue a frenar.
@@ -183,64 +207,57 @@ export const generateAdCopy = async (
   };
 
   const generateWithFallback = async () => {
-    try {
-      console.log("Tier 1: Trying Gemini 3.1 Pro...");
-      return await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview", 
-        contents: { parts: contentParts }, 
-        config: { responseMimeType: "application/json", responseSchema: schema }
-      });
-    } catch (error: any) {
-      console.warn("Tier 1 failed. Switching to Tier 2...", error.message);
+    const models = [
+      "gemini-2.0-flash-exp",   // Try 2.0 Flash first for speed/quality
+      "gemini-1.5-pro-latest",  // Fallback to Pro
+      "gemini-1.5-flash-latest" // Final stable fallback
+    ];
+
+    for (const model of models) {
       try {
-        console.log("Tier 2: Trying Gemini 3 Flash...");
+        console.log(`Copy Gen: Trying ${model}...`);
         return await ai.models.generateContent({
-          model: "gemini-3-flash-preview", 
-          contents: { parts: contentParts }, 
+          model: model,
+          contents: { parts: contentParts },
           config: { responseMimeType: "application/json", responseSchema: schema }
         });
-      } catch (fallbackError: any) {
-         console.warn("Tier 2 failed. Switching to Tier 3 (Flash Latest)...", fallbackError.message);
-         try {
-           return await ai.models.generateContent({
-             model: "gemini-flash-latest", 
-             contents: { parts: contentParts }, 
-             config: { responseMimeType: "application/json", responseSchema: schema }
-           });
-         } catch (tier3Error: any) {
-           console.error("Tier 3 failed too:", tier3Error.message);
-           throw tier3Error; // Throw the actual error to be caught by the outer try-catch
-         }
+      } catch (error: any) {
+        console.warn(`${model} failed:`, error.message);
+        // Continue to next model if not a permission/leak error
+        if (error.message?.includes("leaked") || error.message?.includes("PERMISSION_DENIED")) {
+          throw error;
+        }
       }
     }
+    throw new Error("ALL_AI_FAILED");
   };
 
   try {
     const response = await generateWithFallback();
     const rawText = response.text;
     if (!rawText) throw new Error("Empty response from AI");
-    
+
     const parsed = JSON.parse(cleanJSON(rawText));
     if (!parsed.slides || parsed.slides.length === 0) throw new Error("Invalid slides structure from AI");
-    
+
     // --- POST PROCESSING LOGIC ---
     if (type === 'carousel') {
-        parsed.slides.forEach((slide: any, index: number) => {
-            if (index < parsed.slides.length - 1) {
-                delete slide.cta; 
-            } else if (!slide.cta) {
-                slide.cta = "SABER MÁS";
-            }
-        });
+      parsed.slides.forEach((slide: any, index: number) => {
+        if (index < parsed.slides.length - 1) {
+          delete slide.cta;
+        } else if (!slide.cta) {
+          slide.cta = "SABER MÁS";
+        }
+      });
     } else if (type === 'single-image') {
-        if (!parsed.slides[0].cta) parsed.slides[0].cta = "CLICK AQUÍ";
+      if (!parsed.slides[0].cta) parsed.slides[0].cta = "CLICK AQUÍ";
     }
 
     return parsed;
   } catch (error: any) {
     console.error("Copy Gen Error Details:", error);
     if (error.message?.includes("Requested entity was not found") || error.message?.includes("leaked") || error.message?.includes("PERMISSION_DENIED")) {
-        throw error; // Let App.tsx handle key reset
+      throw error; // Let App.tsx handle key reset
     }
     throw new Error("ALL_AI_FAILED");
   }
@@ -258,10 +275,10 @@ const buildBakedPrompt = (
 ): string => {
 
   const accentColorDesc = userAccentColor ? `Accent Color: ${userAccentColor}` : 'Accent: Gold/Yellow';
-  
+
   if (isAngleMode) {
-      // --- TYPOGRAPHY POSTER (Only used if user manually selects 'Baked' mode) ---
-      return `
+    // --- TYPOGRAPHY POSTER (Only used if user manually selects 'Baked' mode) ---
+    return `
       TYPOGRAPHY POSTER DESIGN. 
       Subject: A massive text-based advertisement.
       TEXT TO RENDER: "${headline}"
@@ -304,7 +321,7 @@ export const generateSlideImage = async (
   userAccentColor: string | null = null,
   isAngleMode: boolean = false
 ): Promise<string> => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   const styleConfig = STYLE_CONFIGS[style];
   const specificInstructions = styleConfig ? styleConfig.promptSuffix : '';
@@ -316,65 +333,58 @@ export const generateSlideImage = async (
   let fullPrompt = "";
   if (textMode === 'baked') {
     fullPrompt = buildBakedPrompt(
-        cleanHeadline, subHeadlineContext, accentWord, visualPrompt, specificInstructions, userAccentColor, isAngleMode
+      cleanHeadline, subHeadlineContext, accentWord, visualPrompt, specificInstructions, userAccentColor, isAngleMode
     );
   } else {
     fullPrompt = `Background image. ${visualPrompt}. Style: ${specificInstructions}. No text.`;
   }
 
-  // TIER 1: NANO BANANA 2.0 (gemini-3.1-flash-image-preview)
-  try {
-    console.log("Image Tier 1: Trying Nano Banana 2.0 (Gemini 3.1 Flash Image)...");
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-image-preview',
-      contents: { parts: [{ text: fullPrompt }] },
-      config: {
-        imageConfig: {
-          aspectRatio: aspectRatio as any,
-          imageSize: "1K"
-        }
-      } 
-    });
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
-    }
-    throw new Error("No data from Nano Banana 2.0");
-  } catch (error: any) {
-    console.warn("Nano Banana 2.0 failed. Switching to Tier 2 (Imagen 4)...", error.message);
-    
-    // TIER 2: IMAGEN 4.0
+  // IMAGE MODEL TIERED FALLBACK
+  const imgModels = [
+    'gemini-3.1-flash-image-preview', // Nano Banana 2.0
+    'imagen-4.0-generate-001',       // Imagen 4
+    'gemini-2.0-flash-image-exp',    // New 2.0 version if exists
+    'gemini-2.5-flash-image'         // Legacy Fallback
+  ];
+
+  for (const model of imgModels) {
     try {
-      const response = await ai.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: fullPrompt,
-        config: { numberOfImages: 1, aspectRatio: aspectRatio as any, outputMimeType: 'image/jpeg' }
-      });
-      const b64 = response.generatedImages?.[0]?.image?.imageBytes;
-      if (b64) return `data:image/jpeg;base64,${b64}`;
-      throw new Error("No data from Imagen 4");
-    } catch (tier2Error: any) {
-      console.warn("Tier 2 failed. Switching to Tier 3 (Gemini 2.5 Flash Image)...", tier2Error.message);
-      
-      // TIER 3: GEMINI 2.5 FLASH IMAGE (Legacy Fallback)
-      try {
+      console.log(`Image Generation: Trying ${model}...`);
+
+      // Different SDK calls for Imagen vs Gemini-Image
+      if (model.includes('imagen')) {
+        const response = await ai.models.generateImages({
+          model: model,
+          prompt: fullPrompt,
+          config: { numberOfImages: 1, aspectRatio: aspectRatio as any, outputMimeType: 'image/jpeg' }
+        });
+        const b64 = response.generatedImages?.[0]?.image?.imageBytes;
+        if (b64) return `data:image/jpeg;base64,${b64}`;
+      } else {
         const response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-image',
+          model: model,
           contents: { parts: [{ text: fullPrompt }] },
-          config: {} 
+          config: {
+            imageConfig: {
+              aspectRatio: aspectRatio as any,
+              imageSize: "1K"
+            }
+          }
         });
         for (const part of response.candidates?.[0]?.content?.parts || []) {
           if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
         }
-        throw new Error("No data from Gemini 2.5 Flash Image");
-      } catch (tier3Error: any) {
-        console.error("All image tiers failed:", tier3Error.message);
-        if (tier3Error.message?.includes("Requested entity was not found") || tier3Error.message?.includes("leaked") || tier3Error.message?.includes("PERMISSION_DENIED")) {
-            throw tier3Error;
-        }
-        throw new Error("Image gen failed"); 
+      }
+      throw new Error("No data returned");
+    } catch (imgErr: any) {
+      console.warn(`${model} for image generation failed:`, imgErr.message);
+      if (imgErr.message?.includes("leaked") || imgErr.message?.includes("PERMISSION_DENIED")) {
+        throw imgErr;
       }
     }
   }
+
+  throw new Error("ALL_IMAGE_MODELS_FAILED");
 };
 
 export const regenerateSlideCopy = async (
@@ -385,10 +395,10 @@ export const regenerateSlideCopy = async (
   intent: string,
   currentHeadline: string
 ): Promise<{ headline: string; subHeadline: string; cta?: string }> => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+    model: "gemini-1.5-flash-latest",
     contents: `Rewrite ad copy. Slide ${slideIndex + 1}. Context: ${projectGoal}. Old: ${currentHeadline}. Output JSON {headline, subHeadline, cta}.`,
     config: {
       responseMimeType: "application/json"
@@ -398,26 +408,26 @@ export const regenerateSlideCopy = async (
 };
 
 export const magicRewrite = async (text: string, tone: 'shorter' | 'punchier' | 'emotional'): Promise<string> => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash-latest",
       contents: `Rewrite: "${text}" to be ${tone}. Spanish. Return ONLY text.`,
     });
     return response.text?.trim().replace(/^"|"$/g, '') || text;
   } catch (e: any) {
     if (e.message?.includes("Requested entity was not found") || e.message?.includes("leaked") || e.message?.includes("PERMISSION_DENIED")) {
-        throw e;
+      throw e;
     }
     return text;
   }
 }
 
 export const editImage = async (base64Image: string, prompt: string): Promise<string> => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
-  
+
   const base64Data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
   const mimeType = base64Image.includes('image/png') ? 'image/png' : 'image/jpeg';
 
@@ -447,19 +457,19 @@ export const editImage = async (base64Image: string, prompt: string): Promise<st
     throw new Error("No image data returned from edit");
   } catch (error: any) {
     if (error.message?.includes("Requested entity was not found") || error.message?.includes("leaked") || error.message?.includes("PERMISSION_DENIED")) {
-        throw error;
+      throw error;
     }
     throw error;
   }
 };
 
 export const generateVideo = async (
-  prompt: string, 
-  base64Image?: string, 
+  prompt: string,
+  base64Image?: string,
   aspectRatio: '16:9' | '9:16' = '16:9',
   onProgress?: (status: string) => void
 ): Promise<string> => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
 
   onProgress?.("Iniciando generación de video...");
@@ -505,12 +515,12 @@ export const generateVideo = async (
     });
 
     if (!response.ok) throw new Error("Failed to download video");
-    
+
     const blob = await response.blob();
     return URL.createObjectURL(blob);
   } catch (error: any) {
     if (error.message?.includes("Requested entity was not found") || error.message?.includes("leaked") || error.message?.includes("PERMISSION_DENIED")) {
-        throw error;
+      throw error;
     }
     throw error;
   }
