@@ -322,36 +322,36 @@ export const generateSlideImage = async (
     fullPrompt = `Background image. ${visualPrompt}. Style: ${specificInstructions}. No text.`;
   }
 
-  // TIER 1: IMAGEN 4 (Best Quality)
+  // TIER 1: NANO BANANA 2.0 (gemini-3.1-flash-image-preview)
   try {
-    console.log("Image Tier 1: Trying Imagen 4...");
-    const response = await ai.models.generateImages({
-      model: 'imagen-4.0-generate-001',
-      prompt: fullPrompt,
-      config: { numberOfImages: 1, aspectRatio: aspectRatio as any, outputMimeType: 'image/jpeg' }
+    console.log("Image Tier 1: Trying Nano Banana 2.0 (Gemini 3.1 Flash Image)...");
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-image-preview',
+      contents: { parts: [{ text: fullPrompt }] },
+      config: {
+        imageConfig: {
+          aspectRatio: aspectRatio as any,
+          imageSize: "1K"
+        }
+      } 
     });
-    const b64 = response.generatedImages?.[0]?.image?.imageBytes;
-    if (b64) return `data:image/jpeg;base64,${b64}`;
-    throw new Error("No data from Imagen 4");
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
+    }
+    throw new Error("No data from Nano Banana 2.0");
   } catch (error: any) {
-    console.warn("Imagen 4 failed. Switching to Tier 2 (Gemini 3.1 Flash Image)...", error.message);
+    console.warn("Nano Banana 2.0 failed. Switching to Tier 2 (Imagen 4)...", error.message);
     
-    // TIER 2: GEMINI 3.1 FLASH IMAGE
+    // TIER 2: IMAGEN 4.0
     try {
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-flash-image-preview',
-        contents: { parts: [{ text: fullPrompt }] },
-        config: {
-            imageConfig: {
-                aspectRatio: aspectRatio as any,
-                imageSize: "1K"
-            }
-        } 
+      const response = await ai.models.generateImages({
+        model: 'imagen-4.0-generate-001',
+        prompt: fullPrompt,
+        config: { numberOfImages: 1, aspectRatio: aspectRatio as any, outputMimeType: 'image/jpeg' }
       });
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
-      }
-      throw new Error("No data from Gemini 3.1 Flash Image");
+      const b64 = response.generatedImages?.[0]?.image?.imageBytes;
+      if (b64) return `data:image/jpeg;base64,${b64}`;
+      throw new Error("No data from Imagen 4");
     } catch (tier2Error: any) {
       console.warn("Tier 2 failed. Switching to Tier 3 (Gemini 2.5 Flash Image)...", tier2Error.message);
       
