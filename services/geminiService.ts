@@ -68,7 +68,7 @@ const getSafeFallback = (prompt: string, style: string): any => {
   };
 };
 
-const getApiKey = () => {
+export const getApiKey = () => {
   // Try various environmental sources
   // @ts-ignore
   const v1 = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env.VITE_GEMINI_API_KEY : null;
