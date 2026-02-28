@@ -336,7 +336,7 @@ export const generateSlideImage = async (
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   const styleConfig = STYLE_CONFIGS[style];
-  const specificInstructions = styleConfig ? styleConfig.promptSuffix : '';
+  const specificInstructions = styleConfig ? (styleConfig as any).promptPrefix || '' : '';
 
   const cleanHeadline = headlineContext.replace(/\*/g, '').trim();
   const accentWordMatch = headlineContext.match(/\*([^*]+)\*/);

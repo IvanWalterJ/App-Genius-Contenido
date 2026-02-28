@@ -217,7 +217,7 @@ const App: React.FC = () => {
                     return {
                         ...s,
                         id: `slide-${idx}`,
-                        overlayOpacity: STYLE_CONFIGS[style].defaultOverlay,
+                        overlayOpacity: STYLE_CONFIGS[style]?.defaultOverlay ?? 0.4,
 
                         headlineSize: genMode === 'single-image' ? 56 : 42, // Larger headline for single image
                         headlineColor: '#ffffff',
