@@ -69,19 +69,24 @@ const getSafeFallback = (prompt: string, style: string): any => {
 };
 
 export const getApiKey = () => {
-  // Try various environmental sources
-  // @ts-ignore
-  const v1 = (typeof import.meta !== 'undefined' && import.meta.env) ? import.meta.env.VITE_GEMINI_API_KEY : null;
+  // Use a safer check for environment variables that Vite's 'define' can easily find
+  let key: string | null = null;
+  try {
+    // Vite built-in
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) {
+      key = import.meta.env.VITE_GEMINI_API_KEY;
+    }
+  } catch (e) { }
 
-  // Use globalThis to safely access environment variables without triggering lint errors
-  const g = globalThis as any;
-  const v2 = g.process?.env?.VITE_GEMINI_API_KEY;
-  const v3 = g.process?.env?.GEMINI_API_KEY;
-  const v4 = g.process?.env?.API_KEY;
-
-  const key = v1 || v2 || v3 || v4;
   if (!key) {
-    console.warn("API Key not found in any environment variable sources.");
+    // These should be replaced by Vite during build/dev
+    const v2 = typeof process !== 'undefined' ? (process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY) : null;
+    key = v2;
+  }
+
+  if (!key) {
+    console.warn("API Key not found. Ensure GEMINI_API_KEY or VITE_GEMINI_API_KEY are set.");
   }
   return key;
 };
@@ -223,8 +228,8 @@ export const generateAdCopy = async (
         });
       } catch (error: any) {
         console.warn(`${model} failed:`, error.message);
-        // Continue to next model if not a permission/leak error
-        if (error.message?.includes("leaked") || error.message?.includes("PERMISSION_DENIED")) {
+        // ONLY throw early if the key is leaked, otherwise keep trying models
+        if (error.message?.includes("leaked")) {
           throw error;
         }
       }
@@ -378,7 +383,7 @@ export const generateSlideImage = async (
       throw new Error("No data returned");
     } catch (imgErr: any) {
       console.warn(`${model} for image generation failed:`, imgErr.message);
-      if (imgErr.message?.includes("leaked") || imgErr.message?.includes("PERMISSION_DENIED")) {
+      if (imgErr.message?.includes("leaked")) {
         throw imgErr;
       }
     }

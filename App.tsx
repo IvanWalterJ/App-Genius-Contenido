@@ -163,18 +163,23 @@ const App: React.FC = () => {
     };
 
     const handleAIError = (err: any) => {
-        console.error(err);
-        if (err.message?.includes("Requested entity was not found") || err.message?.includes("leaked") || err.message?.includes("PERMISSION_DENIED")) {
+        console.error("AI Error Captured:", err);
+        const msg = err.message || "";
+
+        // ONLY block the UI if the key is explicitly leaked or if we get a persistent permission denied
+        // A 'NOT_FOUND' (404) often means a specific model alias is just wrong for this API version, 
+        // so we shouldn't block the whole app for it.
+        if (msg.includes("leaked") || msg.includes("PERMISSION_DENIED")) {
             setHasKey(false);
-            setError("Tu llave de API ha sido reportada como filtrada o no es válida. Por favor, selecciona una nueva llave de API.");
+            setError("Error de autenticación: Tu llave de API no tiene permisos o ha sido bloqueada. Por favor, revisa tu cuenta de Google AI Studio.");
             const win = window as any;
             if (win.aistudio && win.aistudio.openSelectKey) {
                 win.aistudio.openSelectKey();
             }
-        } else if (err.message === "ALL_AI_FAILED") {
-            setError("Todos los modelos de IA fallaron al generar el contenido. Esto puede ser por saturación o un prompt inválido.");
+        } else if (msg === "ALL_AI_FAILED" || msg === "ALL_IMAGE_MODELS_FAILED") {
+            setError("Todos los modelos de IA fallaron al generar el contenido. Esto puede ser por saturación del servicio o una restricción de tu cuenta.");
         } else {
-            setError(err.message || 'Error al procesar con IA. Verifica tu conexión o cuota.');
+            setError(msg || 'Error al procesar con IA. Verifica tu conexión o cuota.');
         }
     };
 
