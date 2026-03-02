@@ -140,14 +140,14 @@ export const generateAdCopy = async (
   
   Tema a tratar: "${prompt}"
 
-  DISEÑO AUTÓNOMO Y CONSISTENCIA:
-  - Tu tarea es decidir por el usuario el diseño visual más eficaz.
-  - Elige una paleta de colores (Primary y Accent) que resuene con el nicho y el tono.
+  ESTRATEGIA DE DISEÑO AUTÓNOMO (BRAND IDENTITY):
+  - Tu misión es crear una IDENTIDAD VISUAL única y consistente para este proyecto.
+  - Elige una paleta de 2 colores (Primary y Accent) que vibren con el sector.
   - Selecciona tipografías del set: font-sans (Inter), font-brand (Montserrat), font-display (Bebas), font-serif (Playfair), font-oswald (Oswald), font-modern (Poppins).
-  - Asegura que el diseño sea coherente en todos los slides. Sujerir colores y fuentes en un objeto 'designTheme'.
-  - Al generar el VisualPrompt, ten en cuenta que el texto se integrará después (overlay) o en la imagen (baked). Si es 'baked' (texto integrado), especifica cómo debe verse el texto en el VisualPrompt.
-  - HeadlineSize sugeridos: 40-70 para Single Image, 35-50 para Carruseles.
-  - SubHeadlineSize sugeridos: 16-24 para Single Image, 14-18 para Carruseles.
+  - EXTREMA CONSISTENCIA: Todas las imágenes deben parecer parte de la misma campaña.
+  - TEXTO INTEGRADO (BAKED): Si el modo es 'baked', describe en el VisualPrompt cómo se fusiona el texto con la imagen (ej: "texto en luces de neón", "letras 3D cromadas sobre fondo minimalista").
+  - Define esta identidad en el objeto 'designTheme' al inicio del JSON.
+  - HeadlineSize sugeridos: 40-70 para Single, 35-50 para Carrusel.
   `;
 
   if (type === 'angles-batch') {

@@ -76,6 +76,7 @@ export interface AdProject {
   aspectRatio: AspectRatio;
   textMode: 'overlay' | 'baked';
   brandContext?: BrandContext;
+  isAiDesign?: boolean;
 
   designTheme?: {
     primaryColor: string;

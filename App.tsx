@@ -26,7 +26,7 @@ const App: React.FC = () => {
     const [prompt, setPrompt] = useState('');
     const [genMode, setGenMode] = useState<GenerationMode>('carousel');
     const [intent, setIntent] = useState<ContentIntent>('paid-ads');
-    const [style, setStyle] = useState<VisualStyle>('authority');
+    const [style, setStyle] = useState<VisualStyle>('brutalism');
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
 
     const [status, setStatus] = useState<GenerationStatus>('idle');
@@ -66,6 +66,7 @@ const App: React.FC = () => {
 
     // Text Mode (Overlay vs Baked)
     const [textMode, setTextMode] = useState<'overlay' | 'baked'>('overlay');
+    const [useAiDesign, setUseAiDesign] = useState(true);
 
     const [brandContext, setBrandContext] = useState<BrandContext>({
         name: '',
@@ -206,9 +207,10 @@ const App: React.FC = () => {
                 aspectRatio,
                 textMode: textMode,
                 brandContext,
-                primaryColor: copyResult.designTheme?.primaryColor || '#000000',
-                accentColor: copyResult.designTheme?.accentColor || COLOR_THEMES[0].accent,
-                accentGradient: `linear-gradient(to right, ${copyResult.designTheme?.accentColor || COLOR_THEMES[0].accent}, ${copyResult.designTheme?.accentColor || COLOR_THEMES[0].accent}dd)`,
+                isAiDesign: useAiDesign,
+                primaryColor: (useAiDesign && copyResult.designTheme?.primaryColor) || '#050505',
+                accentColor: (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent,
+                accentGradient: `linear-gradient(to right, ${(useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent}, ${(useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent}dd)`,
                 slides: (copyResult.slides || []).map((s: any, idx: number) => {
                     let defaultY = 50;
                     if (s.layout === 'bottom-heavy') defaultY = 75;
@@ -221,24 +223,24 @@ const App: React.FC = () => {
 
                         headlineSize: s.headlineSize || (genMode === 'single-image' ? 64 : 48),
                         headlineColor: '#ffffff',
-                        headlineFont: copyResult.designTheme?.headlineFont || 'font-sans',
+                        headlineFont: (useAiDesign && copyResult.designTheme?.headlineFont) || 'font-sans',
                         headlineLineHeight: 1.1,
                         headlineFontWeight: '800',
                         headlineGradient: null,
                         headlineBgColor: null,
 
-                        highlightColor: copyResult.designTheme?.accentColor || COLOR_THEMES[0].accent,
-                        highlightFont: copyResult.designTheme?.headlineFont || 'font-sans',
+                        highlightColor: (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent,
+                        highlightFont: (useAiDesign && copyResult.designTheme?.headlineFont) || 'font-sans',
                         highlightFontWeight: '800',
 
                         subHeadlineSize: s.subHeadlineSize || (genMode === 'single-image' ? 20 : 16),
                         subHeadlineColor: '#eeeeee',
-                        subHeadlineFont: copyResult.designTheme?.subHeadlineFont || 'font-sans',
+                        subHeadlineFont: (useAiDesign && copyResult.designTheme?.subHeadlineFont) || 'font-sans',
                         subHeadlineLineHeight: 1.4,
                         subHeadlineFontWeight: '400',
 
-                        ctaColor: copyResult.designTheme?.ctaColor || '#000000',
-                        ctaBgColor: copyResult.designTheme?.ctaBgColor || '#ffffff',
+                        ctaColor: (useAiDesign && copyResult.designTheme?.ctaColor) || '#000000',
+                        ctaBgColor: (useAiDesign && copyResult.designTheme?.ctaBgColor) || (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent,
                         ctaBgGradient: null,
                         ctaRoundness: 8,
                         ctaShadow: true,
@@ -269,9 +271,10 @@ const App: React.FC = () => {
                 let imageError: string | undefined = undefined;
 
                 try {
+                    const slideAccent = (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor;
                     imageUrl = await generateSlideImage(
                         updatedSlides[i].visualPrompt, style, useReferenceStyle, aspectRatio,
-                        updatedSlides[i].headline, textMode, updatedSlides[i].subHeadline, userAccentColor,
+                        updatedSlides[i].headline, textMode, updatedSlides[i].subHeadline, slideAccent,
                         genMode === 'angles-batch', updatedSlides[i].headlineFont
                     );
                 } catch (imgErr: any) {
@@ -649,6 +652,27 @@ const App: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* Design Mode / IA Switch */}
+                        <div className="bg-gradient-to-br from-neutral-900 to-black p-5 rounded-2xl border border-white/5 space-y-4 shadow-xl">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${useAiDesign ? 'bg-yellow-500 text-black shadow-lg' : 'bg-white/5 text-neutral-500'}`}>
+                                        <Wand2 className="w-5 h-5" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label className="text-xs font-black uppercase tracking-widest text-white">Diseño Inteligente</label>
+                                        <span className="text-[10px] text-neutral-500 font-bold">IA elige colores y fuentes</span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setUseAiDesign(!useAiDesign)}
+                                    className={`w-12 h-6 rounded-full relative transition-all duration-300 ${useAiDesign ? 'bg-yellow-500' : 'bg-neutral-800'}`}
+                                >
+                                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${useAiDesign ? 'left-7' : 'left-1'}`} />
+                                </button>
+                            </div>
+                        </div>
+
                         {/* Controls Grid */}
                         <div className="grid grid-cols-2 gap-6">
                             {/* Format */}
@@ -658,6 +682,28 @@ const App: React.FC = () => {
                                     {(['1:1', '3:4', '9:16'] as AspectRatio[]).map(r => (
                                         <button key={r} onClick={() => setAspectRatio(r)} className={`py-3 px-2 rounded-xl border text-sm font-bold transition-all ${aspectRatio === r ? 'bg-white text-black border-white shadow-lg' : 'border-white/10 text-neutral-500 hover:bg-white/5 hover:text-white'}`}>{r}</button>
                                     ))}
+                                </div>
+                            </div>
+
+                            {/* Text Integration Mode */}
+                            <div className="space-y-3 col-span-2">
+                                <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Integración de Texto</label>
+                                <div className="grid grid-cols-2 gap-3 bg-neutral-900/50 p-1.5 rounded-2xl border border-white/5">
+                                    <button
+                                        onClick={() => setTextMode('overlay')}
+                                        className={`py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${textMode === 'overlay' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}
+                                    >
+                                        <TypeIcon className="w-4 h-4" />
+                                        EDITABLE
+                                    </button>
+                                    <button
+                                        onClick={() => setTextMode('baked')}
+                                        className={`relative py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${textMode === 'baked' ? 'bg-yellow-500 text-black shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}
+                                    >
+                                        <BoxSelect className="w-4 h-4" />
+                                        TEXTO IA
+                                        <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[7px] px-1.5 py-0.5 rounded-full font-black animate-pulse">RECOMENDADO</span>
+                                    </button>
                                 </div>
                             </div>
 
