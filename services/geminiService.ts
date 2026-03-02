@@ -190,7 +190,10 @@ export const generateAdCopy = async (
     required: ['title', 'slides', 'designTheme']
   };
 
-  const models = ["models/gemini-2.0-flash", "models/gemini-1.5-flash"];
+  const models = [
+    "models/gemini-2.0-flash",
+    "models/gemini-1.5-flash"
+  ];
 
   for (const model of models) {
     try {
@@ -202,7 +205,7 @@ export const generateAdCopy = async (
       });
       return JSON.parse(cleanJSON(response.text || '{}'));
     } catch (err: any) {
-      console.warn(`${model} failed:`, err.message);
+      console.warn(`${model} copy gen failed:`, err.message);
     }
   }
 
@@ -234,7 +237,12 @@ export const generateSlideImage = async (
     if (headlineFont) fullPrompt += ` Typography style: ${headlineFont}.`;
   }
 
-  const imgModels = ['gemini-2.0-flash', 'gemini-2.0-flash-exp'];
+  const imgModels = [
+    'models/gemini-3.1-flash-image-preview', // Nano Banana 2
+    'models/gemini-2.5-flash-image',         // Nano Banana
+    'models/gemini-2.0-flash-exp',           // Gemini 2.0 Exp
+    'models/imagen-3.0-generate-001'         // Imagen 3
+  ];
 
   for (const model of imgModels) {
     try {
@@ -252,7 +260,11 @@ export const generateSlideImage = async (
         }
       }
     } catch (err: any) {
-      console.warn(`${model} failed:`, err.message);
+      console.warn(`${model} image gen failed:`, err.message);
+      if (err.message?.includes("not found") || err.message?.includes("not supported")) {
+        continue; // Try next model in tier
+      }
+      throw err; // Stop if it's a safety/key issue
     }
   }
 
