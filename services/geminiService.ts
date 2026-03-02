@@ -125,16 +125,15 @@ export const generateAdCopy = async (
   - Público Objetivo: ${brandContext.targetAudience}
   - Tono de Voz: ${brandContext.tone}
   
-  Misión: Generar un copy que sea IMPOSIBLE de ignorar (Scroll-stopping).
+  Misión: Generar un copy y una identidad visual que conecte PROFUNDAMENTE con ${brandContext.targetAudience} en el nicho de ${brandContext.niche}.
   
   Tema a tratar: "${prompt}"
 
-  ESTRATEGIA DE DISEÑO AUTÓNOMO (BRAND IDENTITY):
-  - Tu misión es crear una IDENTIDAD VISUAL única y consistente para este proyecto.
-  - Elige una paleta de 2 colores (Primary y Accent) que vibren con el sector.
-  - Selecciona tipografías del set: font-sans (Inter), font-brand (Montserrat), font-display (Bebas), font-serif (Playfair), font-oswald (Oswald), font-modern (Poppins).
-  - EXTREMA CONSISTENCIA: Todas las imágenes deben parecer parte de la misma campaña.
-  - TEXTO INTEGRADO (BAKED): Si el modo es 'baked', describe en el VisualPrompt cómo se fusiona el texto con la imagen.
+  ESTRATEGIA DE DISEÑO Y VISUALES:
+  - Crea una IDENTIDAD VISUAL coherente con el sector: ${brandContext.niche}.
+  - Los VisualPrompts deben reflejar escenarios, objetos y atmósferas relevantes para ${brandContext.targetAudience}.
+  - EXTREMA CONSISTENCIA: Todas las imágenes deben usar la misma paleta y estilo.
+  - TEXTO INTEGRADO (BAKED): Si el modo es 'baked', describe cómo el texto se integra (ej: neones, 3D). Nota: No uses asteriscos en el VisualPrompt para el modelo de imagen.
   - Define esta identidad en el objeto 'designTheme' al inicio del JSON.
   - HeadlineSize sugeridos: 40-70 para Single, 35-50 para Carrusel.
   `;
@@ -228,13 +227,18 @@ export const generateSlideImage = async (
   const ai = new GoogleGenAI({ apiKey });
 
   let stylePrefix = STYLE_CONFIGS[style]?.promptPrefix || "";
-  let fullPrompt = `${stylePrefix} ${prompt}. Professional advertisement photography, high end production.`;
+  // Clean asterisks for baked mode as Nano Banana 2 renders them literally
+  const cleanHeadline = headline?.replace(/\*/g, '') || "";
+  const cleanSubHeadline = subHeadline?.replace(/\*/g, '') || "";
 
-  if (textMode === 'baked' && headline) {
-    fullPrompt += ` The following text is visually INTEGRATED into the scene in a ${style} aesthetic: "${headline}".`;
-    if (subHeadline) fullPrompt += ` Small supportive text: "${subHeadline}".`;
-    if (accentColor) fullPrompt += ` Use ${accentColor} for primary visual highlights and text lighting.`;
-    if (headlineFont) fullPrompt += ` Typography style: ${headlineFont}.`;
+  let fullPrompt = `${stylePrefix} ${prompt}. Aspect ratio strictly ${aspectRatio}. Optimized for ${aspectRatio} viewport. Professional photography, high end production.`;
+
+  if (textMode === 'baked' && cleanHeadline) {
+    fullPrompt += ` The text "${cleanHeadline}" is visually INTEGRATED into the scene using ${style} aesthetic.`;
+    if (cleanSubHeadline) fullPrompt += ` Small secondary text: "${cleanSubHeadline}".`;
+    if (accentColor) fullPrompt += ` Visual accent color: ${accentColor}.`;
+    if (headlineFont) fullPrompt += ` Modern typography style.`;
+    fullPrompt += ` Ensure all text is perfectly legible and fits within the ${aspectRatio} boundaries without clipping.`;
   }
 
   const imgModels = [
@@ -247,10 +251,17 @@ export const generateSlideImage = async (
   for (const model of imgModels) {
     try {
       console.log(`Image Generation: Trying ${model}...`);
+
+      const configObj: any = {
+        responseModalities: ['IMAGE'],
+        // Explicitly pass standard aspect ratios if provided
+        aspectRatio: aspectRatio
+      };
+
       const response = await ai.models.generateContent({
         model: model,
         contents: [{ parts: [{ text: fullPrompt }] }],
-        config: { responseModalities: ['IMAGE'] }
+        config: configObj
       });
 
       for (const part of response.candidates?.[0]?.content?.parts || []) {

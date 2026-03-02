@@ -25,9 +25,10 @@ const renderHeadline = (
   highlightFont: string | undefined,
   highlightWeight: string | undefined
 ) => {
+  // Safe split: only process complete *word* or *phrase* pairs
   const parts = text.split(/(\*[^*]+\*)/g);
   return parts.map((part, i) => {
-    if (part.startsWith('*') && part.endsWith('*')) {
+    if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
       return (
         <span
           key={i}
@@ -37,7 +38,6 @@ const renderHeadline = (
             fontWeight: (highlightWeight || '400') as any,
             display: 'inline',
             fontStyle: 'italic',
-            // Reset gradient for highlight to ensure visibility
             backgroundImage: 'none',
             WebkitTextFillColor: 'initial',
             textShadow: 'none'
