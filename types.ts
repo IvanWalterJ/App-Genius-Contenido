@@ -20,13 +20,13 @@ export interface Slide {
   visualPrompt: string;
   backgroundImageUrl?: string | null;
   imageError?: string;
-  
+
   // Layout & Styling
   layout: 'centered' | 'bottom-heavy' | 'top-heavy' | 'split-vertical';
   textAlign: 'left' | 'center' | 'right';
   textPosition: { x: number, y: number };
   overlayOpacity: number;
-  
+
   // Typography
   headlineSize: number;
   headlineColor: string;
@@ -35,17 +35,17 @@ export interface Slide {
   headlineFontWeight: string;
   headlineGradient?: string | null;
   headlineBgColor?: string | null;
-  
+
   highlightColor: string;
   highlightFont?: string;
   highlightFontWeight?: string;
-  
+
   subHeadlineSize: number;
   subHeadlineColor: string;
   subHeadlineFont?: string;
   subHeadlineLineHeight?: number;
   subHeadlineFontWeight?: string;
-  
+
   // CTA
   ctaColor?: string;
   ctaBgColor?: string;
@@ -76,11 +76,20 @@ export interface AdProject {
   aspectRatio: AspectRatio;
   textMode: 'overlay' | 'baked';
   brandContext?: BrandContext;
-  
+
+  designTheme?: {
+    primaryColor: string;
+    accentColor: string;
+    headlineFont: string;
+    subHeadlineFont?: string;
+    ctaBgColor?: string;
+    ctaColor?: string;
+  };
+
   primaryColor: string;
   accentColor: string;
   accentGradient: string;
   brandHandle?: string;
-  
+
   slides: Slide[];
 }

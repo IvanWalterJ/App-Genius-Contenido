@@ -205,10 +205,10 @@ const App: React.FC = () => {
                 visualStyle: style,
                 aspectRatio,
                 textMode: textMode,
-                brandContext, // Include brand context in the project
-                primaryColor: '#000000',
-                accentColor: COLOR_THEMES[0].accent,
-                accentGradient: COLOR_THEMES[0].gradient,
+                brandContext,
+                primaryColor: copyResult.designTheme?.primaryColor || '#000000',
+                accentColor: copyResult.designTheme?.accentColor || COLOR_THEMES[0].accent,
+                accentGradient: `linear-gradient(to right, ${copyResult.designTheme?.accentColor || COLOR_THEMES[0].accent}, ${copyResult.designTheme?.accentColor || COLOR_THEMES[0].accent}dd)`,
                 slides: (copyResult.slides || []).map((s: any, idx: number) => {
                     let defaultY = 50;
                     if (s.layout === 'bottom-heavy') defaultY = 75;
@@ -219,26 +219,28 @@ const App: React.FC = () => {
                         id: `slide-${idx}`,
                         overlayOpacity: STYLE_CONFIGS[style]?.defaultOverlay ?? 0.4,
 
-                        headlineSize: genMode === 'single-image' ? 56 : 42, // Larger headline for single image
+                        headlineSize: s.headlineSize || (genMode === 'single-image' ? 64 : 48),
                         headlineColor: '#ffffff',
+                        headlineFont: copyResult.designTheme?.headlineFont || 'font-sans',
                         headlineLineHeight: 1.1,
                         headlineFontWeight: '800',
                         headlineGradient: null,
                         headlineBgColor: null,
 
-                        highlightColor: COLOR_THEMES[0].accent,
-                        highlightFont: 'font-serif',
-                        highlightFontWeight: '400',
+                        highlightColor: copyResult.designTheme?.accentColor || COLOR_THEMES[0].accent,
+                        highlightFont: copyResult.designTheme?.headlineFont || 'font-sans',
+                        highlightFontWeight: '800',
 
-                        subHeadlineSize: genMode === 'single-image' ? 18 : 14,
-                        subHeadlineColor: '#cccccc',
+                        subHeadlineSize: s.subHeadlineSize || (genMode === 'single-image' ? 20 : 16),
+                        subHeadlineColor: '#eeeeee',
+                        subHeadlineFont: copyResult.designTheme?.subHeadlineFont || 'font-sans',
                         subHeadlineLineHeight: 1.4,
                         subHeadlineFontWeight: '400',
 
-                        ctaColor: '#000000',
-                        ctaBgColor: '#ffffff',
+                        ctaColor: copyResult.designTheme?.ctaColor || '#000000',
+                        ctaBgColor: copyResult.designTheme?.ctaBgColor || '#ffffff',
                         ctaBgGradient: null,
-                        ctaRoundness: 4,
+                        ctaRoundness: 8,
                         ctaShadow: true,
 
                         imageBrightness: 100,
@@ -270,7 +272,7 @@ const App: React.FC = () => {
                     imageUrl = await generateSlideImage(
                         updatedSlides[i].visualPrompt, style, useReferenceStyle, aspectRatio,
                         updatedSlides[i].headline, textMode, updatedSlides[i].subHeadline, userAccentColor,
-                        genMode === 'angles-batch'
+                        genMode === 'angles-batch', updatedSlides[i].headlineFont
                     );
                 } catch (imgErr: any) {
                     imageError = "Error de IA";
@@ -315,7 +317,7 @@ const App: React.FC = () => {
             const newUrl = await generateSlideImage(
                 currentSlide.visualPrompt, project.visualStyle, !!refImage, project.aspectRatio,
                 currentSlide.headline, project.textMode, currentSlide.subHeadline, userAccentColor,
-                project.mode === 'angles-batch'
+                project.mode === 'angles-batch', currentSlide.headlineFont
             );
             updateSlide(slideIdx, { backgroundImageUrl: newUrl, imageError: undefined });
         } catch (err) {

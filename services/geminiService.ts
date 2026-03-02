@@ -138,14 +138,16 @@ export const generateAdCopy = async (
   
   Misión: Generar un copy que sea IMPOSIBLE de ignorar (Scroll-stopping).
   
-  ESTRATEGIAS DE ÉXITO:
-  1. FOMO y Urgencia: Crear una necesidad inmediata.
-  2. Curiosidad Intensa: Abrir un bucle mental con un "Gancho" poderoso.
-  3. Ángulo Disruptivo: Ir en contra de lo convencional para captar atención.
-  4. Beneficio de 2do Nivel: No vendas la característica, vende la transformación.
-  5. Lenguaje de Acción: Usa verbos fuertes, evita la voz pasiva.
-  
   Tema a tratar: "${prompt}"
+
+  DISEÑO AUTÓNOMO Y CONSISTENCIA:
+  - Tu tarea es decidir por el usuario el diseño visual más eficaz.
+  - Elige una paleta de colores (Primary y Accent) que resuene con el nicho y el tono.
+  - Selecciona tipografías del set: font-sans (Inter), font-brand (Montserrat), font-display (Bebas), font-serif (Playfair), font-oswald (Oswald), font-modern (Poppins).
+  - Asegura que el diseño sea coherente en todos los slides.
+  - Al generar el VisualPrompt, ten en cuenta que el texto se integrará después (overlay) o en la imagen (baked). Si es 'baked' (texto integrado), especifica cómo debe verse el texto en el VisualPrompt.
+  - HeadlineSize sugeridos: 40-70 para Single Image, 35-50 para Carruseles.
+  - SubHeadlineSize sugeridos: 16-24 para Single Image, 14-18 para Carruseles.
   `;
 
   if (type === 'angles-batch') {
@@ -198,6 +200,18 @@ export const generateAdCopy = async (
     type: Type.OBJECT,
     properties: {
       title: { type: Type.STRING },
+      designTheme: {
+        type: Type.OBJECT,
+        properties: {
+          primaryColor: { type: Type.STRING, description: "Hex code for primary background/brand color" },
+          accentColor: { type: Type.STRING, description: "Hex code for highlighting key words" },
+          headlineFont: { type: Type.STRING, enum: ['font-sans', 'font-brand', 'font-display', 'font-serif', 'font-oswald', 'font-modern', 'font-hand'] },
+          subHeadlineFont: { type: Type.STRING, enum: ['font-sans', 'font-brand', 'font-modern', 'font-merriweather'] },
+          ctaBgColor: { type: Type.STRING },
+          ctaColor: { type: Type.STRING }
+        },
+        required: ['primaryColor', 'accentColor', 'headlineFont']
+      },
       slides: {
         type: Type.ARRAY,
         items: {
@@ -209,13 +223,15 @@ export const generateAdCopy = async (
             visualPrompt: { type: Type.STRING },
             layout: { type: Type.STRING, enum: ['centered', 'bottom-heavy', 'top-heavy', 'split-vertical'] },
             textAlign: { type: Type.STRING, enum: ['left', 'center', 'right'] },
-            angleLabel: { type: Type.STRING }
+            angleLabel: { type: Type.STRING },
+            headlineSize: { type: Type.NUMBER },
+            subHeadlineSize: { type: Type.NUMBER }
           },
           required: ['headline', 'subHeadline', 'visualPrompt']
         }
       }
     },
-    required: ['title', 'slides']
+    required: ['title', 'slides', 'designTheme']
   };
 
   const generateWithFallback = async () => {
@@ -279,45 +295,44 @@ export const generateAdCopy = async (
 const buildBakedPrompt = (
   headline: string,
   subHeadline: string,
-  accentWord: string | null,
   visualPrompt: string,
   styleInstructions: string,
-  userAccentColor: string | null = null,
+  accentColor: string | null = null,
+  fontFamily: string = 'Bold Sans-Serif',
   isAngleMode: boolean = false
 ): string => {
 
-  const accentColorDesc = userAccentColor ? `Accent Color: ${userAccentColor}` : 'Accent: Gold/Yellow';
+  const colorDesc = accentColor ? `Color Palette: High contrast with accents in ${accentColor}` : 'Color Palette: High contrast White/Gold';
+  const fontDesc = `Font Style: ${fontFamily.replace('font-', '')} (Premium, Bold, highly legible).`;
 
   if (isAngleMode) {
-    // --- TYPOGRAPHY POSTER (Only used if user manually selects 'Baked' mode) ---
     return `
-      TYPOGRAPHY POSTER DESIGN. 
-      Subject: A massive text-based advertisement.
+      MASTERPIECE TYPOGRAPHY POSTER. 
       TEXT TO RENDER: "${headline}"
       
       RULES:
-      1. FONT SIZE: GIGANTIC. The text must occupy 60% of the image.
-      2. FONT STYLE: Impactful, Bold, Sans-Serif (like Nike ads).
-      3. LEGIBILITY: Maximum. The background must be clean behind the text.
-      4. COLOR: High contrast against background. ${accentColorDesc}.
-      5. BACKGROUND: ${visualPrompt}. Keep it subtle/dark so text pops.
-      6. NO SPELLING ERRORS.
+      1. COMPOSITION: Text is the hero. Occupy 70% of the canvas.
+      2. TYPOGRAPHY: ${fontDesc}.
+      3. LEGIBILITY: Clear, crisp edges. Subtle drop shadow for depth.
+      4. STYLE: ${styleInstructions}.
+      5. BACKGROUND: ${visualPrompt}. 
+      6. ${colorDesc}.
+      7. NO MISTAKES IN SPELLING.
       `;
   }
 
-  // Standard Carousel Baked Prompt
   return `
-  Marketing Image with Text Overlay.
+  Premium Marketing Visual with Integrated Text.
   STYLE: ${styleInstructions}
   SCENE: ${visualPrompt}
   
-  TEXT INSTRUCTIONS:
-  - Render Headline: "${headline}"
-  - Font: Bold, Modern, Clean.
-  - Position: Center or Top.
-  - Color: High Contrast White or ${accentColorDesc}.
-  
-  ${subHeadline ? `Bottom small text: "${subHeadline}"` : ''}
+  TEXT RENDERING INSTRUCTIONS:
+  - MAIN HEADLINE: "${headline}"
+  - SUB-TEXT (optional): "${subHeadline}"
+  - ${fontDesc}
+  - ${colorDesc}
+  - POSITION: Naturally integrated into the scene (e.g., on a wall, floating 3D, or clean overlay).
+  - High quality, professional graphic design standards.
   `;
 };
 
@@ -331,7 +346,8 @@ export const generateSlideImage = async (
   textMode: 'overlay' | 'baked' = 'overlay',
   subHeadlineContext: string = "",
   userAccentColor: string | null = null,
-  isAngleMode: boolean = false
+  isAngleMode: boolean = false,
+  fontFamily: string = "font-sans"
 ): Promise<string> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
@@ -339,13 +355,17 @@ export const generateSlideImage = async (
   const specificInstructions = styleConfig ? (styleConfig as any).promptPrefix || '' : '';
 
   const cleanHeadline = headlineContext.replace(/\*/g, '').trim();
-  const accentWordMatch = headlineContext.match(/\*([^*]+)\*/);
-  const accentWord = accentWordMatch ? accentWordMatch[1].trim() : null;
 
   let fullPrompt = "";
   if (textMode === 'baked') {
     fullPrompt = buildBakedPrompt(
-      cleanHeadline, subHeadlineContext, accentWord, visualPrompt, specificInstructions, userAccentColor, isAngleMode
+      cleanHeadline,
+      subHeadlineContext,
+      visualPrompt,
+      specificInstructions,
+      userAccentColor,
+      fontFamily,
+      isAngleMode
     );
   } else {
     fullPrompt = `Background image. ${visualPrompt}. Style: ${specificInstructions}. No text.`;
