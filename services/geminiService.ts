@@ -370,26 +370,45 @@ export const generateSlideImage = async (
   }
 
   // IMAGE MODEL TIERED FALLBACK
-  // gemini-2.0-flash-preview-image-generation supports native image output
+  // We use Imagen 3 (best quality) and Gemini 2.0 Flash Exp (native generation)
   const imgModels = [
-    'gemini-2.0-flash-preview-image-generation',  // Nano Banana 2 - native image output
-    'gemini-2.0-flash',                            // Standard fallback with image output
+    'imagen-3.0-generate-001', // Imagen 3 - Highest quality standalone
+    'gemini-2.0-flash-exp',    // Nano Banana 2 (Experimental) - supports native IMAGE modality
+    'gemini-2.0-flash'         // Nano Banana 2 (Stable)
   ];
 
   for (const model of imgModels) {
     try {
       console.log(`Image Generation: Trying ${model}...`);
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: { parts: [{ text: fullPrompt }] },
-        config: {
-          responseModalities: ['TEXT', 'IMAGE'],
-        }
-      });
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if ((part as any).inlineData?.data) {
-          const mime = (part as any).inlineData.mimeType || 'image/png';
-          return `data:${mime};base64,${(part as any).inlineData.data}`;
+
+      if (model.includes('imagen')) {
+        // standalone Imagen 3 uses generateImages
+        const response = await ai.models.generateImages({
+          model: model,
+          prompt: fullPrompt,
+          config: {
+            numberOfImages: 1,
+            aspectRatio: (aspectRatio === '1:1' ? '1:1' : aspectRatio === '9:16' ? '9:16' : '3:4'),
+            outputMimeType: 'image/jpeg'
+          }
+        });
+        const b64 = response.generatedImages?.[0]?.image?.imageBytes;
+        if (b64) return `data:image/jpeg;base64,${b64}`;
+      } else {
+        // Gemini 2.0 uses generateContent with IMAGE modality
+        const response = await ai.models.generateContent({
+          model: model,
+          contents: { parts: [{ text: fullPrompt }] },
+          config: {
+            responseModalities: ['IMAGE'],
+          }
+        });
+
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
+          if ((part as any).inlineData?.data) {
+            const mime = (part as any).inlineData.mimeType || 'image/png';
+            return `data:${mime};base64,${(part as any).inlineData.data}`;
+          }
         }
       }
       throw new Error("No image data returned");
