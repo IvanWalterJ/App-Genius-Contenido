@@ -17,50 +17,59 @@ const cleanJSON = (text: string) => {
 };
 
 // --- SAFE MODE FALLBACK ---
-const getSafeFallback = (prompt: string, style: string): any => {
+const getSafeFallback = (prompt: string, style: string, brand: BrandContext): any => {
+  const niche = brand.niche || "tu sector";
+  const audience = brand.targetAudience || "tu audiencia";
+
   return {
-    title: "Campaña: " + prompt.substring(0, 20) + "...",
+    title: `Campaña: ${niche}`,
+    designTheme: {
+      primaryColor: "#0a0a0a",
+      accentColor: "#facc15",
+      headlineFont: "font-brand",
+      subHeadlineFont: "font-modern"
+    },
     slides: [
       {
-        headline: "ATENCIÓN: *Oportunidad* Única",
-        subHeadline: "¿Estás listo para transformar tus resultados hoy mismo? Descubre el método exacto que estamos utilizando.",
-        visualPrompt: "Minimalist abstract background, high contrast, professional lighting",
+        headline: `ATENCIÓN: *${niche.toUpperCase()}* para ${brand.name || 'ti'}`,
+        subHeadline: `Descubre cómo ayudamos a ${audience} a lograr resultados extraordinarios con nuestro método probado.`,
+        visualPrompt: `High-end professional atmosphere for ${niche}, professional lighting, premium aesthetic related to ${audience}`,
         layout: "centered",
         angleLabel: "GANCHO"
       },
       {
-        headline: "El *Problema* Real",
-        subHeadline: "La mayoría ignora este detalle crucial y pierde dinero intentando adivinar el camino correcto sin guía.",
-        visualPrompt: "Moody cinematic lighting, dark tones, serious atmosphere",
+        headline: "El *Problema* de hoy",
+        subHeadline: `Sabemos que como ${audience}, te enfrentas a retos diarios en ${niche} que frenan tu crecimiento.`,
+        visualPrompt: `Metaphorical image about challenges in ${niche}, professional cinematic lighting`,
         layout: "bottom-heavy",
         angleLabel: "DOLOR"
       },
       {
         headline: "Nuestra *Solución*",
-        subHeadline: "Hemos desarrollado un sistema probado paso a paso para lograr el éxito sin complicaciones técnicas.",
-        visualPrompt: "Bright, clean, technological aesthetic, blue tones",
+        subHeadline: `Hemos diseñado un sistema específico para ${niche} que elimina la complejidad y maximiza tu energía.`,
+        visualPrompt: `Bright success imagery related to ${niche}, clean minimalist 4k`,
         layout: "centered",
         angleLabel: "SOLUCIÓN"
       },
       {
-        headline: "Resultados *Garantizados*",
-        subHeadline: "Únete a cientos de clientes satisfechos que ya han cambiado su trayectoria con nosotros.",
-        visualPrompt: "Success lifestyle imagery, warm golden lighting",
+        headline: "Resultados *Reales*",
+        subHeadline: `Únete a personas en ${niche} que ya han transformado su rendimiento con nuestra ayuda.`,
+        visualPrompt: `Professional achievement in ${niche} context, warm lighting`,
         layout: "top-heavy",
         angleLabel: "PRUEBA"
       },
       {
         headline: "Tu Nueva *Realidad*",
-        subHeadline: "Imagina lograr tus objetivos sin estrés y con tiempo libre para disfrutar lo que construiste.",
-        visualPrompt: "Inspirational landscape, sunrise, hopeful vibe",
+        subHeadline: `Imagina trabajar en su salud y rendimiento con la confianza de tener el mejor respaldo en ${niche}.`,
+        visualPrompt: `Inspirational setting for ${audience}, sunrise, hopeful professional vibe`,
         layout: "centered",
         angleLabel: "BENEFICIO"
       },
       {
         headline: "Accede *Ahora*",
-        subHeadline: "Oferta limitada. No dejes pasar esta oportunidad de cambiar tu futuro hoy mismo.",
+        subHeadline: `No pierdas la oportunidad de elevar tu estándar. Haz clic para empezar tu cambio hoy.`,
         cta: "REGÍSTRATE AQUÍ",
-        visualPrompt: "High end abstract geometric shapes, dynamic composition",
+        visualPrompt: `Dynamic abstract geometric composition, premium production for ${niche}`,
         layout: "bottom-heavy",
         angleLabel: "CIERRE"
       }
@@ -119,21 +128,26 @@ export const generateAdCopy = async (
   let sysInstruction = `Rol: Director Creativo y Copywriter de Respuesta Directa (Direct Response) de Élite.
   Tu especialidad es el "Marketing de Impacto" y la psicología de ventas de alto CTR.
   
-  Contexto de la Marca:
-  - Nombre: ${brandContext.name}
-  - Nicho/Industria: ${brandContext.niche}
-  - Público Objetivo: ${brandContext.targetAudience}
-  - Tono de Voz: ${brandContext.tone}
+  Misión: Generar un copy y una identidad visual que conecte PROFUNDAMENTE con el avatar del cliente ideal.
   
-  Misión: Generar un copy y una identidad visual que conecte PROFUNDAMENTE con ${brandContext.targetAudience} en el nicho de ${brandContext.niche}.
+  CONTEXTO OBLIGATORIO DE MARCA (USA ESTO PARA TODO):
+  - Nombre de Marca: ${brandContext.name}
+  - Sector/Nicho: ${brandContext.niche}
+  - Avatar de Cliente (Público): ${brandContext.targetAudience}
+  - Personalidad/Tono: ${brandContext.tone}
   
-  Tema a tratar: "${prompt}"
+  INSTRUCCIONES CRÍTICAS:
+  1. Si ignoras el Nicho (${brandContext.niche}) o el Público (${brandContext.targetAudience}), la campaña SERÁ UN FRACASO.
+  2. Todo el copy debe hablar directamente a los dolores y deseos de ${brandContext.targetAudience}.
+  3. Las imágenes descritas en VisualPrompt deben mostrar escenarios donde ${brandContext.targetAudience} se sienta identificado en su vida diaria real.
+  
+  Idea Central: "${prompt}"
 
   ESTRATEGIA DE DISEÑO Y VISUALES:
-  - Crea una IDENTIDAD VISUAL coherente con el sector: ${brandContext.niche}.
+  - Crea una IDENTIDAD VISUAL coherente exclusivamente con el sector: ${brandContext.niche}.
   - Los VisualPrompts deben reflejar escenarios, objetos y atmósferas relevantes para ${brandContext.targetAudience}.
-  - EXTREMA CONSISTENCIA: Todas las imágenes deben usar la misma paleta y estilo.
-  - TEXTO INTEGRADO (BAKED): Si el modo es 'baked', describe cómo el texto se integra (ej: neones, 3D). Nota: No uses asteriscos en el VisualPrompt para el modelo de imagen.
+  - EXTREMA CONSISTENCIA: Todas las imágenes deben usar la misma paleta y estilo publicitario de alto nivel.
+  - TEXTO INTEGRADO (BAKED): Si el modo es 'baked', describe cómo el texto se fusiona (ej: luces LED, 3D sobre superficie, etc). No incluyas asteriscos.
   - Define esta identidad en el objeto 'designTheme' al inicio del JSON.
   - HeadlineSize sugeridos: 40-70 para Single, 35-50 para Carrusel.
   `;
@@ -208,7 +222,7 @@ export const generateAdCopy = async (
     }
   }
 
-  return getSafeFallback(prompt, style);
+  return getSafeFallback(prompt, style, brandContext);
 };
 
 export const generateSlideImage = async (
