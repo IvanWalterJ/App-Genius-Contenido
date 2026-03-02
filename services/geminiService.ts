@@ -124,7 +124,7 @@ export const generateAdCopy = async (
   knowledgeBase?: string,
   textMode: 'overlay' | 'baked' = 'overlay'
 ): Promise<Partial<AdProject>> => {
-  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
 
   let sysInstruction = `Rol: Director Creativo y Copywriter de Respuesta Directa (Direct Response) de Élite.
@@ -144,7 +144,7 @@ export const generateAdCopy = async (
   - Tu tarea es decidir por el usuario el diseño visual más eficaz.
   - Elige una paleta de colores (Primary y Accent) que resuene con el nicho y el tono.
   - Selecciona tipografías del set: font-sans (Inter), font-brand (Montserrat), font-display (Bebas), font-serif (Playfair), font-oswald (Oswald), font-modern (Poppins).
-  - Asegura que el diseño sea coherente en todos los slides.
+  - Asegura que el diseño sea coherente en todos los slides. Sujerir colores y fuentes en un objeto 'designTheme'.
   - Al generar el VisualPrompt, ten en cuenta que el texto se integrará después (overlay) o en la imagen (baked). Si es 'baked' (texto integrado), especifica cómo debe verse el texto en el VisualPrompt.
   - HeadlineSize sugeridos: 40-70 para Single Image, 35-50 para Carruseles.
   - SubHeadlineSize sugeridos: 16-24 para Single Image, 14-18 para Carruseles.
@@ -203,9 +203,9 @@ export const generateAdCopy = async (
       designTheme: {
         type: Type.OBJECT,
         properties: {
-          primaryColor: { type: Type.STRING, description: "Hex code for primary background/brand color" },
-          accentColor: { type: Type.STRING, description: "Hex code for highlighting key words" },
-          headlineFont: { type: Type.STRING, enum: ['font-sans', 'font-brand', 'font-display', 'font-serif', 'font-oswald', 'font-modern', 'font-hand'] },
+          primaryColor: { type: Type.STRING, description: "Hex code for brand color" },
+          accentColor: { type: Type.STRING, description: "Hex code for accent" },
+          headlineFont: { type: Type.STRING, enum: ['font-sans', 'font-brand', 'font-display', 'font-serif', 'font-oswald', 'font-modern'] },
           subHeadlineFont: { type: Type.STRING, enum: ['font-sans', 'font-brand', 'font-modern', 'font-merriweather'] },
           ctaBgColor: { type: Type.STRING },
           ctaColor: { type: Type.STRING }
@@ -223,9 +223,7 @@ export const generateAdCopy = async (
             visualPrompt: { type: Type.STRING },
             layout: { type: Type.STRING, enum: ['centered', 'bottom-heavy', 'top-heavy', 'split-vertical'] },
             textAlign: { type: Type.STRING, enum: ['left', 'center', 'right'] },
-            angleLabel: { type: Type.STRING },
-            headlineSize: { type: Type.NUMBER },
-            subHeadlineSize: { type: Type.NUMBER }
+            angleLabel: { type: Type.STRING }
           },
           required: ['headline', 'subHeadline', 'visualPrompt']
         }
@@ -236,9 +234,8 @@ export const generateAdCopy = async (
 
   const generateWithFallback = async () => {
     const models = [
-      "gemini-2.0-flash",   // Nano Banana 2.0 (Fastest & Newest)
-      "gemini-1.5-flash",   // Stable fallback
-      "gemini-1.5-pro"      // High reasoning fallback
+      "gemini-1.5-flash",   // Most stable alias
+      "gemini-1.5-pro"
     ];
 
     for (const model of models) {
