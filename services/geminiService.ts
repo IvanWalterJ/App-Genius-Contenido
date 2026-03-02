@@ -234,7 +234,7 @@ export const generateSlideImage = async (
     if (headlineFont) fullPrompt += ` Typography style: ${headlineFont}.`;
   }
 
-  const imgModels = ['models/gemini-2.0-flash-exp', 'models/imagen-3.0-generate-001'];
+  const imgModels = ['gemini-2.0-flash', 'gemini-2.0-flash-exp'];
 
   for (const model of imgModels) {
     try {
