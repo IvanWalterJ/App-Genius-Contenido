@@ -96,7 +96,7 @@ export const enhancePrompt = async (rawPrompt: string): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash", // More stable alias
+      model: "gemini-2.0-flash", // Nano Banana 2 - primary
       contents: `Rewrite prompt for marketing. Input: "${rawPrompt}". Output Spanish. Keep it short. Return ONLY text.`,
     });
     return response.text?.trim() || rawPrompt;
@@ -234,8 +234,9 @@ export const generateAdCopy = async (
 
   const generateWithFallback = async () => {
     const models = [
-      "gemini-1.5-flash",   // Most stable alias
-      "gemini-1.5-pro"
+      "gemini-2.0-flash",           // Nano Banana 2 - primary
+      "gemini-2.0-flash-lite",      // Lite fallback
+      "gemini-1.5-flash-latest"     // Legacy fallback
     ];
 
     for (const model of models) {
@@ -369,44 +370,32 @@ export const generateSlideImage = async (
   }
 
   // IMAGE MODEL TIERED FALLBACK
+  // gemini-2.0-flash-preview-image-generation supports native image output
   const imgModels = [
-    'gemini-2.0-flash',       // Nano Banana 2.0 (Imagen 3 inside)
-    'imagen-3-generate-001',  // Dedicated Imagen 3
-    'imagen-4.0-generate-001' // Imagen 4
+    'gemini-2.0-flash-preview-image-generation',  // Nano Banana 2 - native image output
+    'gemini-2.0-flash',                            // Standard fallback with image output
   ];
 
   for (const model of imgModels) {
     try {
       console.log(`Image Generation: Trying ${model}...`);
-
-      // Different SDK calls for Imagen vs Gemini-Image
-      if (model.includes('imagen')) {
-        const response = await ai.models.generateImages({
-          model: model,
-          prompt: fullPrompt,
-          config: { numberOfImages: 1, aspectRatio: aspectRatio as any, outputMimeType: 'image/jpeg' }
-        });
-        const b64 = response.generatedImages?.[0]?.image?.imageBytes;
-        if (b64) return `data:image/jpeg;base64,${b64}`;
-      } else {
-        const response = await ai.models.generateContent({
-          model: model,
-          contents: { parts: [{ text: fullPrompt }] },
-          config: {
-            imageConfig: {
-              aspectRatio: aspectRatio as any,
-              imageSize: "1K"
-            }
-          }
-        });
-        for (const part of response.candidates?.[0]?.content?.parts || []) {
-          if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: { parts: [{ text: fullPrompt }] },
+        config: {
+          responseModalities: ['TEXT', 'IMAGE'],
+        }
+      });
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if ((part as any).inlineData?.data) {
+          const mime = (part as any).inlineData.mimeType || 'image/png';
+          return `data:${mime};base64,${(part as any).inlineData.data}`;
         }
       }
-      throw new Error("No data returned");
+      throw new Error("No image data returned");
     } catch (imgErr: any) {
       console.warn(`${model} for image generation failed:`, imgErr.message);
-      if (imgErr.message?.includes("leaked")) {
+      if (imgErr.message?.includes("leaked") || imgErr.message?.includes("PERMISSION_DENIED")) {
         throw imgErr;
       }
     }
@@ -426,7 +415,7 @@ export const regenerateSlideCopy = async (
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash",
+    model: "gemini-2.0-flash",
     contents: `Rewrite ad copy. Slide ${slideIndex + 1}. Context: ${projectGoal}. Old: ${currentHeadline}. Output JSON {headline, subHeadline, cta}.`,
     config: {
       responseMimeType: "application/json"
@@ -440,7 +429,7 @@ export const magicRewrite = async (text: string, tone: 'shorter' | 'punchier' | 
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       contents: `Rewrite: "${text}" to be ${tone}. Spanish. Return ONLY text.`,
     });
     return response.text?.trim().replace(/^"|"$/g, '') || text;
