@@ -16,7 +16,7 @@ import {
     FileText, Check, Type as TypeIcon, Move, Maximize2, Minimize2,
     Bold, AlignLeft, AlignCenter, AlignRight, Sliders, BoxSelect,
     PaintBucket, Copy, Grid, Lock, Key, XCircle, AtSign, Highlighter,
-    Minus, Plus, History, Trash2, Calendar, Video, Play
+    Minus, Plus, History, Trash2, Calendar, Video, Play, User, X
 } from 'lucide-react';
 
 const QUICK_COLORS = ['#ffffff', '#000000', '#facc15', '#f87171', '#60a5fa', '#a78bfa', '#4ade80'];
@@ -275,7 +275,7 @@ const App: React.FC = () => {
                     imageUrl = await generateSlideImage(
                         updatedSlides[i].visualPrompt, style, useReferenceStyle, aspectRatio,
                         updatedSlides[i].headline, textMode, updatedSlides[i].subHeadline, slideAccent,
-                        genMode === 'angles-batch', updatedSlides[i].headlineFont
+                        genMode === 'angles-batch', updatedSlides[i].headlineFont, refImage || undefined
                     );
                 } catch (imgErr: any) {
                     imageError = "Error de IA";
@@ -320,7 +320,7 @@ const App: React.FC = () => {
             const newUrl = await generateSlideImage(
                 currentSlide.visualPrompt, project.visualStyle, !!refImage, project.aspectRatio,
                 currentSlide.headline, project.textMode, currentSlide.subHeadline, userAccentColor,
-                project.mode === 'angles-batch', currentSlide.headlineFont
+                project.mode === 'angles-batch', currentSlide.headlineFont, refImage || undefined
             );
             updateSlide(slideIdx, { backgroundImageUrl: newUrl, imageError: undefined });
         } catch (err) {
@@ -376,9 +376,7 @@ const App: React.FC = () => {
         try {
             const videoUrl = await generateVideo(
                 videoPrompt,
-                currentSlide.backgroundImageUrl || undefined,
-                project.aspectRatio === '9:16' ? '9:16' : '16:9',
-                (status) => setVideoProgress(status)
+                currentSlide.backgroundImageUrl ? [currentSlide.backgroundImageUrl] : []
             );
             updateSlide(activeSlideIdx, { videoUrl });
             setVideoPrompt('');
@@ -631,6 +629,39 @@ const App: React.FC = () => {
                         </div>
 
                         <div className="space-y-3">
+                            <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Referencia de Personaje</label>
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
+                                className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all group ${refImage ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-neutral-800/30 border-white/10 hover:bg-neutral-800/50'}`}
+                            >
+                                <div className={`w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center border border-white/10 ${refImage ? 'bg-yellow-500/20' : 'bg-neutral-800 text-neutral-500'}`}>
+                                    {refImage ? <img src={refImage} className="w-full h-full object-cover" alt="Ref" /> : <User className="w-5 h-5" />}
+                                </div>
+                                <div className="flex-1 overflow-hidden">
+                                    <p className={`text-sm font-bold truncate ${refImage ? 'text-yellow-200' : 'text-neutral-300 group-hover:text-white'}`}>
+                                        {refImage ? "Imagen Cargada" : "Subir Foto (Tu Cara/Modelo)"}
+                                    </p>
+                                    <p className="text-[10px] text-neutral-500 mt-0.5 uppercase font-black tracking-tighter">La IA usará este rostro para los visuales</p>
+                                </div>
+                                {refImage && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setRefImage(null); }}
+                                        className="p-1 hover:bg-red-500/20 rounded-md text-red-400 transition-colors"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={handleRefImageUpload}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
                             <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Base de Conocimiento</label>
                             <div
                                 onClick={() => docInputRef.current?.click()}
@@ -643,7 +674,7 @@ const App: React.FC = () => {
                                     <p className={`text-sm font-bold truncate ${knowledgeBase ? 'text-blue-200' : 'text-neutral-300 group-hover:text-white'}`}>
                                         {kbFileName || "Subir Documento (PDF/TXT)"}
                                     </p>
-                                    <p className="text-xs text-neutral-500 mt-0.5">La IA usará esto como contexto.</p>
+                                    <p className="text-xs text-neutral-500 mt-0.5">Contexto Extra para la IA.</p>
                                 </div>
                                 <input
                                     type="file"

@@ -235,7 +235,8 @@ export const generateSlideImage = async (
   subHeadline?: string,
   accentColor?: string,
   isBatch: boolean = false,
-  headlineFont?: string
+  headlineFont?: string,
+  characterReference?: string
 ): Promise<string> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
@@ -255,6 +256,10 @@ export const generateSlideImage = async (
     fullPrompt += ` Ensure all text is perfectly legible and fits within the ${aspectRatio} boundaries without clipping.`;
   }
 
+  if (characterReference) {
+    fullPrompt += ` MANDATORY: The person in this image must match the face, ethnicity, age, and features of the provided reference character. EXTREME CONSISTENCY with the person is required.`;
+  }
+
   const imgModels = [
     'models/gemini-3.1-flash-image-preview', // Nano Banana 2
     'models/gemini-2.5-flash-image',         // Nano Banana
@@ -272,9 +277,15 @@ export const generateSlideImage = async (
         aspectRatio: aspectRatio
       };
 
+      const contentParts: any[] = [{ text: fullPrompt }];
+      if (characterReference) {
+        const base64Data = characterReference.split(',')[1];
+        contentParts.unshift({ inlineData: { mimeType: "image/png", data: base64Data } });
+      }
+
       const response = await ai.models.generateContent({
         model: model,
-        contents: [{ parts: [{ text: fullPrompt }] }],
+        contents: [{ parts: contentParts }],
         config: configObj
       });
 
