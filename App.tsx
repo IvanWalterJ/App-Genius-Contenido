@@ -26,7 +26,7 @@ const App: React.FC = () => {
     const [prompt, setPrompt] = useState('');
     const [genMode, setGenMode] = useState<GenerationMode>('carousel');
     const [intent, setIntent] = useState<ContentIntent>('paid-ads');
-    const [style, setStyle] = useState<VisualStyle>('brutalism');
+    const [style, setStyle] = useState<VisualStyle>('auto');
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
 
     const [status, setStatus] = useState<GenerationStatus>('idle');
@@ -764,7 +764,7 @@ const App: React.FC = () => {
                         </div>
 
                         {/* Visual Style Selector */}
-                        <div className={`space-y-3 transition-all duration-300 relative ${refImage ? 'opacity-40 pointer-events-none grayscale' : ''}`}>
+                        <div className="space-y-3 transition-all duration-300 relative">
                             <label className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center justify-between">
                                 Estilo Visual
                             </label>
@@ -791,9 +791,10 @@ const App: React.FC = () => {
                                         onClick={() => setStyle(s)}
                                         onMouseEnter={() => setHoveredStyle(s)}
                                         onMouseLeave={() => setHoveredStyle(null)}
-                                        className={`py-3 px-2 rounded-xl border text-[10px] font-black transition-all uppercase tracking-tighter ${style === s ? 'bg-white text-black border-white shadow-lg scale-[1.02]' : 'border-white/5 text-neutral-500 hover:bg-white/5 hover:text-white'}`}
+                                        className={`relative py-3 px-2 rounded-xl border text-[10px] font-black transition-all uppercase tracking-tighter ${style === s ? 'bg-white text-black border-white shadow-lg scale-[1.02]' : 'border-white/5 text-neutral-500 hover:bg-white/5 hover:text-white'}`}
                                     >
                                         {STYLE_CONFIGS[s].name}
+                                        {s === 'auto' && <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[6px] px-1 py-0.5 rounded-full animate-pulse">RECOMENDADO</span>}
                                     </button>
                                 ))}
                             </div>

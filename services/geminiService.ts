@@ -129,6 +129,7 @@ export const generateAdCopy = async (
   Tu especialidad es el "Marketing de Impacto" y la psicología de ventas de alto CTR.
   
   Misión: Generar un copy y una identidad visual que conecte PROFUNDAMENTE con el avatar del cliente ideal.
+  ${style === 'auto' ? 'ESTILO LIBRE: Tienes total libertad creativa para elegir el estilo visual más impactante y relevante para este nicho. Ignora estilos predefinidos y crea algo único.' : `ESTILO SOLICITADO: ${style}.`}
   
   CONTEXTO OBLIGATORIO DE MARCA (USA ESTO PARA TODO):
   - Nombre de Marca: ${brandContext.name}
