@@ -153,13 +153,24 @@ export const generateAdCopy = async (
   - HeadlineSize sugeridos: 40-70 para Single, 35-50 para Carrusel.
   `;
 
+  const hasSlideMarkers = /slide \d+/i.test(prompt) || /\[slide \d+\]/i.test(prompt);
+
   if (type === 'angles-batch') {
     sysInstruction += `\nTarea: Generar 6 variaciones visuales de ALTO IMPACTO (Ángulos: Dolor, Deseo, Romper Objeción, Lógica, Urgencia, Creativo). Output JSON.`;
   } else if (type === 'single-image') {
     sysInstruction += `\nTarea: Generar 1 sola imagen publicitaria de impacto. Output JSON.`;
   } else {
-    sysInstruction += `\nTarea: Crear carrusel de 6 slides con narrativa continua. Output JSON.`;
+    if (hasSlideMarkers) {
+      sysInstruction += `\nTAREA CRÍTICA: Se ha detectado una estructura de SLIDES en la Idea Central. 
+      - DEBES seguir el número exacto de slides indicados (ej: si hay Slide 1, 2 y 3, genera solo 3 slides).
+      - DEBES usar el texto proporcionado para cada slide PALABRA POR PALABRA como Headline. NO agregues ni quites nada.
+      - Crea un VisualPrompt que acompañe perfectamente a ese texto específico.`;
+    } else {
+      sysInstruction += `\nTarea: Crear carrusel de 6 slides con narrativa continua. Output JSON.`;
+    }
   }
+
+  sysInstruction += `\n\nREGLA DE ORO DE TEXTO: Si la Idea Central parece ser un copy terminado o contiene instrucciones de texto específicas, tu prioridad es la FIDELIDAD. No cambies el mensaje del usuario. Úsalo como headline principal.`;
 
   const contentParts: any[] = [];
   if (referenceImage) {
@@ -250,11 +261,11 @@ export const generateSlideImage = async (
   let fullPrompt = `${stylePrefix} ${prompt}. Aspect ratio strictly ${aspectRatio}. Optimized for ${aspectRatio} viewport. Professional photography, high end production.`;
 
   if (textMode === 'baked' && cleanHeadline) {
-    fullPrompt += ` The text "${cleanHeadline}" is visually INTEGRATED into the scene using ${style} aesthetic.`;
+    fullPrompt += ` STRICTURE: Render the EXACT text "${cleanHeadline}" on the image. DO NOT add any other words, letters, or symbols. DO NOT change the spelling. Fidelity is mandatory.`;
     if (cleanSubHeadline) fullPrompt += ` Small secondary text: "${cleanSubHeadline}".`;
     if (accentColor) fullPrompt += ` Visual accent color: ${accentColor}.`;
     if (headlineFont) fullPrompt += ` Modern typography style.`;
-    fullPrompt += ` Ensure all text is perfectly legible and fits within the ${aspectRatio} boundaries without clipping.`;
+    fullPrompt += ` Ensure all text is perfectly legible, properly balanced, and fits within the ${aspectRatio} boundaries without clipping.`;
   }
 
   if (characterReference) {
