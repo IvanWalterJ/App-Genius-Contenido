@@ -17,9 +17,55 @@ const cleanJSON = (text: string) => {
 };
 
 // --- SAFE MODE FALLBACK ---
-const getSafeFallback = (prompt: string, style: string, brand: BrandContext): any => {
+const getSafeFallback = (prompt: string, style: string, brand: BrandContext, type: string): any => {
   const niche = brand.niche || "tu sector";
   const audience = brand.targetAudience || "tu audiencia";
+
+  const slides = [
+    {
+      headline: `ATENCIÓN: *${niche.toUpperCase()}* para ${brand.name || 'ti'}`,
+      subHeadline: `Descubre cómo ayudamos a ${audience} a lograr resultados extraordinarios con nuestro método probado.`,
+      visualPrompt: `High-end professional atmosphere for ${niche}, professional lighting, premium aesthetic related to ${audience}`,
+      layout: "centered",
+      angleLabel: "GANCHO"
+    },
+    {
+      headline: "El *Problema* de hoy",
+      subHeadline: `Sabemos que como ${audience}, te enfrentas a retos diarios en ${niche} que frenan tu crecimiento.`,
+      visualPrompt: `Metaphorical image about challenges in ${niche}, professional cinematic lighting`,
+      layout: "bottom-heavy",
+      angleLabel: "DOLOR"
+    },
+    {
+      headline: "Nuestra *Solución*",
+      subHeadline: `Hemos diseñado un sistema específico para ${niche} que elimina la complejidad y maximiza tu energía.`,
+      visualPrompt: `Bright success imagery related to ${niche}, clean minimalist 4k`,
+      layout: "centered",
+      angleLabel: "SOLUCIÓN"
+    },
+    {
+      headline: "Resultados *Reales*",
+      subHeadline: `Únete a personas en ${niche} que ya han transformado su rendimiento con nuestra ayuda.`,
+      visualPrompt: `Professional achievement in ${niche} context, warm lighting`,
+      layout: "top-heavy",
+      angleLabel: "PRUEBA"
+    },
+    {
+      headline: "Tu Nueva *Realidad*",
+      subHeadline: `Imagina trabajar en su salud y rendimiento con la confianza de tener el mejor respaldo en ${niche}.`,
+      visualPrompt: `Inspirational setting for ${audience}, sunrise, hopeful professional vibe`,
+      layout: "centered",
+      angleLabel: "BENEFICIO"
+    },
+    {
+      headline: "Accede *Ahora*",
+      subHeadline: `No pierdas la oportunidad de elevar tu estándar. Haz clic para empezar tu cambio hoy.`,
+      cta: "REGÍSTRATE AQUÍ",
+      visualPrompt: `Dynamic abstract geometric composition, premium production for ${niche}`,
+      layout: "bottom-heavy",
+      angleLabel: "CIERRE"
+    }
+  ];
 
   return {
     title: `Campaña: ${niche}`,
@@ -29,51 +75,7 @@ const getSafeFallback = (prompt: string, style: string, brand: BrandContext): an
       headlineFont: "font-brand",
       subHeadlineFont: "font-modern"
     },
-    slides: [
-      {
-        headline: `ATENCIÓN: *${niche.toUpperCase()}* para ${brand.name || 'ti'}`,
-        subHeadline: `Descubre cómo ayudamos a ${audience} a lograr resultados extraordinarios con nuestro método probado.`,
-        visualPrompt: `High-end professional atmosphere for ${niche}, professional lighting, premium aesthetic related to ${audience}`,
-        layout: "centered",
-        angleLabel: "GANCHO"
-      },
-      {
-        headline: "El *Problema* de hoy",
-        subHeadline: `Sabemos que como ${audience}, te enfrentas a retos diarios en ${niche} que frenan tu crecimiento.`,
-        visualPrompt: `Metaphorical image about challenges in ${niche}, professional cinematic lighting`,
-        layout: "bottom-heavy",
-        angleLabel: "DOLOR"
-      },
-      {
-        headline: "Nuestra *Solución*",
-        subHeadline: `Hemos diseñado un sistema específico para ${niche} que elimina la complejidad y maximiza tu energía.`,
-        visualPrompt: `Bright success imagery related to ${niche}, clean minimalist 4k`,
-        layout: "centered",
-        angleLabel: "SOLUCIÓN"
-      },
-      {
-        headline: "Resultados *Reales*",
-        subHeadline: `Únete a personas en ${niche} que ya han transformado su rendimiento con nuestra ayuda.`,
-        visualPrompt: `Professional achievement in ${niche} context, warm lighting`,
-        layout: "top-heavy",
-        angleLabel: "PRUEBA"
-      },
-      {
-        headline: "Tu Nueva *Realidad*",
-        subHeadline: `Imagina trabajar en su salud y rendimiento con la confianza de tener el mejor respaldo en ${niche}.`,
-        visualPrompt: `Inspirational setting for ${audience}, sunrise, hopeful professional vibe`,
-        layout: "centered",
-        angleLabel: "BENEFICIO"
-      },
-      {
-        headline: "Accede *Ahora*",
-        subHeadline: `No pierdas la oportunidad de elevar tu estándar. Haz clic para empezar tu cambio hoy.`,
-        cta: "REGÍSTRATE AQUÍ",
-        visualPrompt: `Dynamic abstract geometric composition, premium production for ${niche}`,
-        layout: "bottom-heavy",
-        angleLabel: "CIERRE"
-      }
-    ]
+    slides: type === 'single-image' ? [slides[0]] : slides
   };
 };
 
@@ -156,9 +158,9 @@ export const generateAdCopy = async (
   const hasSlideMarkers = /slide \d+/i.test(prompt) || /\[slide \d+\]/i.test(prompt);
 
   if (type === 'angles-batch') {
-    sysInstruction += `\nTarea: Generar 6 variaciones visuales de ALTO IMPACTO (Ángulos: Dolor, Deseo, Romper Objeción, Lógica, Urgencia, Creativo). Output JSON.`;
+    sysInstruction += `\nTarea: Generar EXACTAMENTE 6 variaciones visuales de ALTO IMPACTO (Ángulos: Dolor, Deseo, Romper Objeción, Lógica, Urgencia, Creativo). Ignora cualquier estructura de slides del usuario, enfócate en los 6 ángulos. Output JSON.`;
   } else if (type === 'single-image') {
-    sysInstruction += `\nTarea: Generar 1 sola imagen publicitaria de impacto. Output JSON.`;
+    sysInstruction += `\nTarea: Generar EXACTAMENTE 1 sola imagen publicitaria de impacto. Ignora cualquier estructura de slides múltiple, concentra todo en 1 slide. Output JSON.`;
   } else {
     if (hasSlideMarkers) {
       sysInstruction += `\nTAREA CRÍTICA: Se ha detectado una estructura de SLIDES en la Idea Central. 
@@ -166,7 +168,7 @@ export const generateAdCopy = async (
       - DEBES usar el texto proporcionado para cada slide PALABRA POR PALABRA como Headline. NO agregues ni quites nada.
       - Crea un VisualPrompt que acompañe perfectamente a ese texto específico.`;
     } else {
-      sysInstruction += `\nTarea: Crear carrusel de 6 slides con narrativa continua. Output JSON.`;
+      sysInstruction += `\nTarea: Crear carrusel de EXACTAMENTE 6 slides con narrativa continua. Output JSON.`;
     }
   }
 
@@ -234,7 +236,7 @@ export const generateAdCopy = async (
     }
   }
 
-  return getSafeFallback(prompt, style, brandContext);
+  return getSafeFallback(prompt, style, brandContext, type);
 };
 
 export const generateSlideImage = async (
