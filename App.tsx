@@ -609,20 +609,23 @@ const App: React.FC = () => {
 
                         <div className="space-y-3">
                             <div className="flex justify-between items-center">
-                                <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Idea del Contenido</label>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Idea o Copy Preparado</label>
+                                    <span className="text-[9px] text-neutral-500 font-bold uppercase tracking-tighter">Tip: Si ya tienes tu copy, pégalo aquí y usa "TEXTO IA" para grabarlo en la imagen.</span>
+                                </div>
                                 <button
                                     onClick={handleEnhancePrompt}
                                     disabled={isEnhancingPrompt || !prompt}
                                     className="text-xs flex items-center gap-2 text-yellow-500 hover:text-yellow-400 transition-colors font-bold uppercase tracking-wider px-3 py-1 rounded-full hover:bg-yellow-500/10"
                                 >
                                     {isEnhancingPrompt ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                                    {isEnhancingPrompt ? "Mejorando..." : "Mejorar"}
+                                    {isEnhancingPrompt ? "Optimizar" : "Mejorar"}
                                 </button>
                             </div>
                             <textarea
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
-                                placeholder="Ej: High ticket coaching, mentalidad de éxito..."
+                                placeholder="Escribe tu idea o pega directamente el texto que quieres que aparezca en la imagen (ej: '5 Tips para vender más')..."
                                 className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-5 text-base focus:ring-2 ring-yellow-500/50 outline-none transition-all resize-none placeholder:text-neutral-600 font-medium leading-relaxed"
                             />
                         </div>
