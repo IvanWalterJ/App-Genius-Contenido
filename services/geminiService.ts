@@ -310,18 +310,26 @@ export const generateSlideImage = async (
         aspectRatio: aspectRatio
       };
 
-      const contentParts: any[] = [{ text: fullPrompt }];
+      const contentParts: any[] = [];
 
       if (styleReference) {
         const base64Data = styleReference.split(',')[1];
-        contentParts.unshift({ inlineData: { mimeType: "image/png", data: base64Data } });
-        fullPrompt += ` MANDATORY: Adhere to the visual style, color palette, and design aesthetic of the provided style reference image.`;
+        contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+        // Add a specialized style instruction
+        fullPrompt += ` \nSTYLE REFERENCE INSTRUCTION: Replicate the EXACT visual DNA of the provided reference image. This includes: 
+        1. COLOR PALETTE: Use the same dominant colors and accent glows (e.g., magenta/purple neon).
+        2. TYPOGRAPHY & GRAPHICS: Mimic the font style, weight, and any graphical effects (glitch, pixelation, overlays).
+        3. LIGHTING & ATMOSPHERE: Match the high-contrast lighting, dramatic shadows, and overall 'Vibe'.
+        Apply this BRAND STYLE to the subject: ${prompt}. The goal is consistency so they look part of the same campaign.`;
       }
 
       if (characterReference) {
         const base64Data = characterReference.split(',')[1];
-        contentParts.unshift({ inlineData: { mimeType: "image/png", data: base64Data } });
+        contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
       }
+
+      // Add the final prompt after the visual references
+      contentParts.push({ text: fullPrompt });
 
       const response = await ai.models.generateContent({
         model: model,
