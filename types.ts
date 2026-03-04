@@ -61,9 +61,11 @@ export interface Slide {
   imageBlur: number;
 
   angleLabel?: string;
+  customStyle?: string;
   videoUrl?: string | null;
   isWinner?: boolean;
 }
+
 
 export interface AdProject {
   id: string;

@@ -127,11 +127,13 @@ export const generateAdCopy = async (
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
 
+  const isVolume = type === 'angles-batch';
+
   let sysInstruction = `Rol: Director Creativo y Copywriter de Respuesta Directa (Direct Response) de Élite.
   Tu especialidad es el "Marketing de Impacto" y la psicología de ventas de alto CTR.
   
   Misión: Generar un copy y una identidad visual que conecte PROFUNDAMENTE con el avatar del cliente ideal.
-  ${style === 'auto' ? 'ESTILO LIBRE: Tienes total libertad creativa para elegir el estilo visual más impactante y relevante para este nicho. Ignora estilos predefinidos y crea algo único.' : `ESTILO SOLICITADO: ${style}.`}
+  ${(style === 'auto' || isVolume) ? 'ESTILO LIBRE: Tienes total libertad creativa para elegir el estilo visual más impactante y relevante para este nicho. Ignora estilos predefinidos y crea algo único.' : `ESTILO SOLICITADO: ${style}.`}
   
   CONTEXTO OBLIGATORIO DE MARCA (USA ESTO PARA TODO):
   - Nombre de Marca: ${brandContext.name}
@@ -147,9 +149,9 @@ export const generateAdCopy = async (
   Idea Central: "${prompt}"
 
   ESTRATEGIA DE DISEÑO Y VISUALES:
+  ${isVolume ? '- VARIACIONES DISRUPTIVAS: En este modo, cada slide debe tener un VisualPrompt con una atmósfera COMPLETAMENTE diferente a la anterior (ej: una minimalista, otra brutalista, otra 3D surrealista, etc). No busques consistencia, busca IMPACTO INDIVIDUAL para testeo.' : '- EXTREMA CONSISTENCIA: Todas las imágenes deben usar la misma paleta y estilo publicitario de alto nivel.'}
   - Crea una IDENTIDAD VISUAL coherente exclusivamente con el sector: ${brandContext.niche}.
   - Los VisualPrompts deben reflejar escenarios, objetos y atmósferas relevantes para ${brandContext.targetAudience}.
-  - EXTREMA CONSISTENCIA: Todas las imágenes deben usar la misma paleta y estilo publicitario de alto nivel.
   - TEXTO INTEGRADO (BAKED): Si el modo es 'baked', describe cómo el texto se fusiona (ej: luces LED, 3D sobre superficie, etc). No incluyas asteriscos.
   - Define esta identidad en el objeto 'designTheme' al inicio del JSON.
   - HeadlineSize sugeridos: 40-70 para Single, 35-50 para Carrusel.
@@ -218,8 +220,9 @@ export const generateAdCopy = async (
   };
 
   const models = [
-    "models/gemini-2.0-flash",
-    "models/gemini-1.5-flash"
+    "gemini-2.0-flash",           // Principal (Nano Banana 2)
+    "gemini-1.5-flash-latest",    // Backup Robusto
+    "gemini-1.5-flash-8b"         // Backup Ultra-Rápido
   ];
 
   for (const model of models) {
@@ -250,12 +253,13 @@ export const generateSlideImage = async (
   accentColor?: string,
   isBatch: boolean = false,
   headlineFont?: string,
-  characterReference?: string
+  characterReference?: string,
+  customStyle?: string
 ): Promise<string> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
 
-  let stylePrefix = STYLE_CONFIGS[style]?.promptPrefix || "";
+  let stylePrefix = customStyle || STYLE_CONFIGS[style]?.promptPrefix || "";
   // Clean asterisks for baked mode as Nano Banana 2 renders them literally
   const cleanHeadline = headline?.replace(/\*/g, '') || "";
   const cleanSubHeadline = subHeadline?.replace(/\*/g, '') || "";
@@ -275,10 +279,9 @@ export const generateSlideImage = async (
   }
 
   const imgModels = [
-    'models/gemini-3.1-flash-image-preview', // Nano Banana 2
-    'models/gemini-2.5-flash-image',         // Nano Banana
-    'models/gemini-2.0-flash-exp',           // Gemini 2.0 Exp
-    'models/imagen-3.0-generate-001'         // Imagen 3
+    'imagen-3.0-generate-001',    // Calidad Pro
+    'gemini-2.0-flash',           // Multimodal Nativo
+    'imagen-3.0-fast-generate-001' // Velocidad
   ];
 
   for (const model of imgModels) {

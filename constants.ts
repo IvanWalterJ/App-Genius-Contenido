@@ -91,3 +91,13 @@ export const FONT_OPTIONS = [
   { name: 'Merriweather (Classic)', value: 'font-merriweather' },
   { name: 'Patrick Hand (Casual)', value: 'font-hand' },
 ];
+export const DISRUPTIVE_STYLES = [
+  'Hyper-realistic 3D surrealism, floating objects, dreamlike atmosphere, liquid metal textures, impossible physics, vibrant neon contrast. ',
+  'Retro-future synthwave, 80s movie poster aesthetic, heavy grain, chrome effects, deep purples and oranges, cinematic lighting. ',
+  'Hand-drawn experimental charcoal sketch, raw energy, messy lines, high artistic value, black and white with one bold accent color. ',
+  'Acid graphic design style, distorted typography, glitch effects, thermal camera colors, high energy, chaotic layout, maximalist. ',
+  'Professional high-end fashion editorial, avant-garde, dramatic shadows, mysterious mood, unusual camera angles, vogue aesthetic. ',
+  'Claymation/Stop-motion style, handcrafted tactile feel, imperfections, soft warm lighting, cute but slightly weird, colorful. ',
+  'Dark technical blueprint style, vector lines, scientific diagrams, futuristic UI elements, industrial aesthetic, blueprint blue and white. ',
+  'Vivid watercolor and ink splash, messy but elegant, street art influences, vibrant drips, mixed media collage style. '
+];

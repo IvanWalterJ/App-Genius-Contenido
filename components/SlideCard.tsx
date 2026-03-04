@@ -1,7 +1,7 @@
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { Slide, VisualStyle, AspectRatio } from '../types';
-import { ImageOff, AtSign } from 'lucide-react';
+import { ImageOff } from 'lucide-react';
 
 interface SlideCardProps {
   slide: Slide;
@@ -11,7 +11,7 @@ interface SlideCardProps {
   brandHandle?: string;
   index: number;
   isEditing: boolean;
-  onPositionChange: (x: number, y: number) => void;
+  onPositionChange?: (x: number, y: number) => void;
   aspectRatio: AspectRatio;
   showSafeZones: boolean;
   textMode: 'overlay' | 'baked';
@@ -19,156 +19,15 @@ interface SlideCardProps {
   hideNumbering?: boolean;
 }
 
-const renderHeadline = (
-  text: string,
-  highlightColor: string,
-  highlightFont: string | undefined,
-  highlightWeight: string | undefined
-) => {
-  // Safe split: only process complete *word* or *phrase* pairs
-  const parts = text.split(/(\*[^*]+\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
-      return (
-        <span
-          key={i}
-          className={`${highlightFont || 'font-serif'} italic`}
-          style={{
-            color: highlightColor,
-            fontWeight: (highlightWeight || '400') as any,
-            display: 'inline',
-            fontStyle: 'italic',
-            backgroundImage: 'none',
-            WebkitTextFillColor: 'initial',
-            textShadow: 'none'
-          }}
-        >
-          {part.slice(1, -1)}
-        </span>
-      );
-    }
-    return <span key={i}>{part}</span>;
-  });
-};
-
 const SlideCard: React.FC<SlideCardProps> = ({
-  slide, visualStyle, accentGradient, accentColor, brandHandle,
-  index, isEditing, onPositionChange, aspectRatio, showSafeZones, textMode, id,
+  slide, aspectRatio, showSafeZones, id, index
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [localPos, setLocalPos] = useState(slide.textPosition);
-
-  // Sync local pos with props unless dragging
-  useEffect(() => {
-    if (!isDragging) setLocalPos(slide.textPosition);
-  }, [slide.textPosition, isDragging]);
-
-  const onMouseDown = (e: React.MouseEvent) => {
-    if (!isEditing || textMode === 'baked') return;
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const onMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !containerRef.current) return;
-    const r = containerRef.current.getBoundingClientRect();
-
-    // Calculate percentage position
-    const newX = ((e.clientX - r.left) / r.width) * 100;
-    const newY = ((e.clientY - r.top) / r.height) * 100;
-
-    setLocalPos({
-      x: Math.max(0, Math.min(100, newX)),
-      y: Math.max(0, Math.min(100, newY)),
-    });
-  };
-
-  const onMouseUp = () => { if (isDragging) { setIsDragging(false); onPositionChange(localPos.x, localPos.y); } };
-  const onMouseLeave = () => { if (isDragging) { setIsDragging(false); onPositionChange(localPos.x, localPos.y); } };
-
   const [w, h] = aspectRatio.split(':').map(Number);
-  const layout = slide.layout || 'bottom-heavy';
 
   // Image Filters style
   const imageFilterStyle = {
     filter: `brightness(${slide.imageBrightness}%) contrast(${slide.imageContrast}%) saturate(${slide.imageSaturation}%) blur(${slide.imageBlur}px)`
-  };
-
-  // Overlays
-  const overlayGradients: Record<string, string> = {
-    'bottom-heavy': 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, transparent 100%)',
-    'top-heavy': 'linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 40%, transparent 100%)',
-    'centered': 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.4) 100%)',
-    'split-vertical': 'linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.1) 60%, transparent 100%)',
-  };
-
-  // Dragging Styles
-  const draggableContainerStyle: React.CSSProperties = textMode === 'overlay' ? {
-    position: 'absolute',
-    left: `${localPos.x}%`,
-    top: `${localPos.y}%`,
-    transform: 'translate(-50%, -50%)', // Center anchor
-    width: '90%', // Default width constraint
-    cursor: isDragging ? 'grabbing' : 'grab',
-    userSelect: 'none',
-    border: isDragging || isEditing ? '1px dashed rgba(255,255,255,0.3)' : 'none',
-    padding: '10px',
-    zIndex: 20
-  } : {
-    // Non-overlay positioning (static)
-    position: 'absolute',
-    inset: 0,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 20
-  };
-
-  // Helper for text styles (Handling gradients)
-  const getTextStyle = (
-    size: number,
-    color: string,
-    lineHeight: number,
-    weight: string,
-    gradient?: string | null,
-    bgColor?: string | null
-  ): React.CSSProperties => {
-    const baseStyle: React.CSSProperties = {
-      fontSize: `calc(${size} * 0.1538cqw)`, // Scale proportionally with container (ref: 650px)
-      lineHeight: lineHeight,
-      fontWeight: weight as any,
-      textShadow: (gradient || bgColor) ? 'none' : '0 4px 30px rgba(0,0,0,0.8)', // Disable shadow on gradient/bg text
-      whiteSpace: 'pre-wrap',
-    };
-
-    if (gradient) {
-      return {
-        ...baseStyle,
-        backgroundImage: gradient,
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-        color: 'transparent' // Fallback
-      };
-    }
-
-    if (bgColor) {
-      return {
-        ...baseStyle,
-        color: color,
-        backgroundColor: bgColor,
-        boxDecorationBreak: 'clone',
-        WebkitBoxDecorationBreak: 'clone',
-        padding: '4px 8px',
-        borderRadius: '4px',
-      }
-    }
-
-    return {
-      ...baseStyle,
-      color: color
-    };
   };
 
   return (
@@ -177,9 +36,8 @@ const SlideCard: React.FC<SlideCardProps> = ({
       className="relative w-full bg-neutral-950 overflow-hidden shadow-2xl select-none"
       style={{ aspectRatio: `${w}/${h}`, containerType: 'inline-size' }}
       id={id || `slide-export-${index}`}
-      onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseLeave}
     >
-      {/* ── Background ─────────────────────────────────────────────────── */}
+      {/* ── Background (Image/Video with Baked Text) ─────────────────── */}
       {slide.videoUrl ? (
         <video
           src={slide.videoUrl}
@@ -205,101 +63,7 @@ const SlideCard: React.FC<SlideCardProps> = ({
           </div>
       }
 
-      {/* ── OVERLAY mode: gradient + text ──────────────────────────────── */}
-      {textMode === 'overlay' && (
-        <>
-          {/* Gradient scrim (Affected by user opacity) */}
-          <div className="absolute inset-0 z-10 pointer-events-none transition-opacity duration-300"
-            style={{
-              background: overlayGradients[layout] || overlayGradients['bottom-heavy'],
-              opacity: slide.overlayOpacity
-            }}
-          />
-
-          {/* Text wrapper (Draggable) */}
-          <div
-            className="flex flex-col gap-4"
-            style={{
-              ...draggableContainerStyle,
-              textAlign: slide.textAlign
-            }}
-            onMouseDown={onMouseDown}
-          >
-            {/* Slide Indicator */}
-            <div className="flex items-center gap-2 mb-2 opacity-50" style={{ justifyContent: slide.textAlign === 'center' ? 'center' : slide.textAlign === 'right' ? 'flex-end' : 'flex-start' }}>
-              <span className="block h-px w-5" style={{ background: accentColor || 'white' }} />
-              <span className="text-[9px] font-mono tracking-[0.3em] text-white uppercase shadow-black drop-shadow-md">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-            </div>
-
-            {/* Headline */}
-            <h2
-              className={`${slide.headlineFont || 'font-brand'}`}
-              style={getTextStyle(
-                slide.headlineSize,
-                slide.headlineColor,
-                slide.headlineLineHeight,
-                slide.headlineFontWeight,
-                slide.headlineGradient,
-                slide.headlineBgColor
-              )}
-            >
-              {renderHeadline(slide.headline, slide.highlightColor, slide.highlightFont, slide.highlightFontWeight)}
-            </h2>
-
-            {/* Subheadline */}
-            {slide.subHeadline && (
-              <p
-                className={`${slide.subHeadlineFont || 'font-modern'}`}
-                style={getTextStyle(
-                  slide.subHeadlineSize,
-                  slide.subHeadlineColor,
-                  slide.subHeadlineLineHeight || 1.4,
-                  slide.subHeadlineFontWeight || '400',
-                  null, // No gradient for sub
-                  null  // No bg for sub usually
-                )}
-              >
-                {slide.subHeadline}
-              </p>
-            )}
-
-            {/* CTA Button - Custom Styling */}
-            {slide.cta && (
-              <div style={{ marginTop: '10px' }}>
-                <span
-                  className={`inline-block px-8 py-3 transition-all ${slide.ctaFont || 'font-brand'}`}
-                  style={{
-                    background: slide.ctaBgGradient || slide.ctaBgColor,
-                    color: slide.ctaColor,
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    letterSpacing: '0.15em',
-                    textTransform: 'uppercase',
-                    borderRadius: `${slide.ctaRoundness}px`,
-                    boxShadow: slide.ctaShadow ? '0 10px 30px -5px rgba(0,0,0,0.5)' : 'none',
-                    border: '1px solid rgba(255,255,255,0.1)'
-                  }}
-                >
-                  {slide.cta}
-                </span>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* ── Brand Handle (Watermark) ──────────────────────────────── */}
-      {brandHandle && textMode === 'overlay' && (
-        <div className="absolute bottom-6 left-0 w-full text-center z-20 pointer-events-none opacity-50">
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium tracking-wider text-white bg-black/20 backdrop-blur-sm px-3 py-1 rounded-full border border-white/5">
-            <AtSign className="w-3 h-3" /> {brandHandle.replace(/^@/, '')}
-          </span>
-        </div>
-      )}
-
-      {/* ── SAFE ZONES ─────────────────────────────────────────────────── */}
+      {/* ── SAFE ZONES (Optional visual guide) ────────────────────────── */}
       {showSafeZones && (
         <div className="absolute inset-0 pointer-events-none z-50 safe-zone-overlay">
           <div className="absolute inset-5 border border-dashed border-cyan-400/60 rounded" />

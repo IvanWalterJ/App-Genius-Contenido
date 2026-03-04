@@ -4,7 +4,8 @@ import { AdProject, GenerationStatus, Slide, ContentIntent, VisualStyle, AspectR
 import { generateAdCopy, generateSlideImage, enhancePrompt, regenerateSlideCopy, editImage, generateVideo, getApiKey } from './services/geminiService';
 import { getHistory, saveToHistory, deleteFromHistory } from './services/historyService';
 import SlideCard from './components/SlideCard';
-import { COLOR_THEMES, STYLE_CONFIGS, FONT_OPTIONS } from './constants';
+import { COLOR_THEMES, STYLE_CONFIGS, FONT_OPTIONS, DISRUPTIVE_STYLES } from './constants';
+
 import { toPng } from 'html-to-image';
 import {
     Sparkles, Download, Loader2,
@@ -64,8 +65,8 @@ const App: React.FC = () => {
     const [kbFileName, setKbFileName] = useState<string | null>(null);
     const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
 
-    // Text Mode (Overlay vs Baked)
-    const [textMode, setTextMode] = useState<'overlay' | 'baked'>('overlay');
+    // Text Mode (Baked by default for Nano Banana 2)
+    const [textMode, setTextMode] = useState<'overlay' | 'baked'>('baked');
     const [useAiDesign, setUseAiDesign] = useState(true);
 
     const [brandContext, setBrandContext] = useState<BrandContext>({
@@ -205,7 +206,7 @@ const App: React.FC = () => {
                 mode: genMode,
                 visualStyle: style,
                 aspectRatio,
-                textMode: textMode,
+                textMode: 'baked',
                 brandContext,
                 isAiDesign: useAiDesign,
                 primaryColor: (useAiDesign && copyResult.designTheme?.primaryColor) || '#050505',
@@ -216,10 +217,18 @@ const App: React.FC = () => {
                     if (s.layout === 'bottom-heavy') defaultY = 75;
                     if (s.layout === 'top-heavy') defaultY = 25;
 
+                    // Assign disruptive style for Volume mode (angles-batch)
+                    let disruptiveStylePrefix: string | undefined = undefined;
+                    if (genMode === 'angles-batch') {
+                        // Use sequential or random selection from DISRUPTIVE_STYLES
+                        disruptiveStylePrefix = DISRUPTIVE_STYLES[idx % DISRUPTIVE_STYLES.length];
+                    }
+
                     return {
                         ...s,
                         id: `slide-${idx}`,
                         overlayOpacity: STYLE_CONFIGS[style]?.defaultOverlay ?? 0.4,
+                        customStyle: disruptiveStylePrefix,
 
                         headlineSize: s.headlineSize || (genMode === 'single-image' ? 64 : 48),
                         headlineColor: '#ffffff',
@@ -274,8 +283,9 @@ const App: React.FC = () => {
                     const slideAccent = (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor;
                     imageUrl = await generateSlideImage(
                         updatedSlides[i].visualPrompt, style, useReferenceStyle, aspectRatio,
-                        updatedSlides[i].headline, textMode, updatedSlides[i].subHeadline, slideAccent,
-                        genMode === 'angles-batch', updatedSlides[i].headlineFont, refImage || undefined
+                        updatedSlides[i].headline, 'baked', updatedSlides[i].subHeadline, slideAccent,
+                        genMode === 'angles-batch', updatedSlides[i].headlineFont, refImage || undefined,
+                        updatedSlides[i].customStyle
                     );
                 } catch (imgErr: any) {
                     imageError = "Error de IA";
@@ -319,8 +329,9 @@ const App: React.FC = () => {
         try {
             const newUrl = await generateSlideImage(
                 currentSlide.visualPrompt, project.visualStyle, !!refImage, project.aspectRatio,
-                currentSlide.headline, project.textMode, currentSlide.subHeadline, userAccentColor,
-                project.mode === 'angles-batch', currentSlide.headlineFont, refImage || undefined
+                currentSlide.headline, 'baked', currentSlide.subHeadline, userAccentColor,
+                project.mode === 'angles-batch', currentSlide.headlineFont, refImage || undefined,
+                currentSlide.customStyle
             );
             updateSlide(slideIdx, { backgroundImageUrl: newUrl, imageError: undefined });
         } catch (err) {
@@ -686,26 +697,7 @@ const App: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Design Mode / IA Switch */}
-                        <div className="bg-gradient-to-br from-neutral-900 to-black p-5 rounded-2xl border border-white/5 space-y-4 shadow-xl">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${useAiDesign ? 'bg-yellow-500 text-black shadow-lg' : 'bg-white/5 text-neutral-500'}`}>
-                                        <Wand2 className="w-5 h-5" />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <label className="text-xs font-black uppercase tracking-widest text-white">Diseño Inteligente</label>
-                                        <span className="text-[10px] text-neutral-500 font-bold">IA elige colores y fuentes</span>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setUseAiDesign(!useAiDesign)}
-                                    className={`w-12 h-6 rounded-full relative transition-all duration-300 ${useAiDesign ? 'bg-yellow-500' : 'bg-neutral-800'}`}
-                                >
-                                    <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all shadow-sm ${useAiDesign ? 'left-7' : 'left-1'}`} />
-                                </button>
-                            </div>
-                        </div>
+
 
                         {/* Controls Grid */}
                         <div className="grid grid-cols-2 gap-6">
@@ -719,27 +711,7 @@ const App: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Text Integration Mode */}
-                            <div className="space-y-3 col-span-2">
-                                <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Integración de Texto</label>
-                                <div className="grid grid-cols-2 gap-3 bg-neutral-900/50 p-1.5 rounded-2xl border border-white/5">
-                                    <button
-                                        onClick={() => setTextMode('overlay')}
-                                        className={`py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${textMode === 'overlay' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}
-                                    >
-                                        <TypeIcon className="w-4 h-4" />
-                                        EDITABLE
-                                    </button>
-                                    <button
-                                        onClick={() => setTextMode('baked')}
-                                        className={`relative py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${textMode === 'baked' ? 'bg-yellow-500 text-black shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}
-                                    >
-                                        <BoxSelect className="w-4 h-4" />
-                                        TEXTO IA
-                                        <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[7px] px-1.5 py-0.5 rounded-full font-black animate-pulse">RECOMENDADO</span>
-                                    </button>
-                                </div>
-                            </div>
+
 
                             {/* Generation Mode */}
                             <div className="space-y-3 col-span-2">
@@ -763,42 +735,59 @@ const App: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Visual Style Selector */}
-                        <div className="space-y-3 transition-all duration-300 relative">
+                        {/* Visual Style Selector - Hidden in Volume Mode */}
+                        <div className={`space-y-3 transition-all duration-500 relative ${genMode === 'angles-batch' ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
                             <label className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center justify-between">
                                 Estilo Visual
-                            </label>
-                            <div className="grid grid-cols-2 gap-3 relative">
-                                {/* Hover Preview Card */}
-                                {hoveredStyle && STYLE_CONFIGS[hoveredStyle] && (
-                                    <div className="absolute bottom-full left-0 mb-4 w-72 p-3 bg-neutral-950/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.7)] z-[100] animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-none transform origin-bottom">
-                                        <div className="relative aspect-video w-full rounded-lg overflow-hidden mb-3 border border-white/10">
-                                            <img src={STYLE_CONFIGS[hoveredStyle].preview} className="w-full h-full object-cover" alt="" />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
-                                            <div className="absolute bottom-3 left-3 right-3">
-                                                <span className="text-xs font-black uppercase tracking-widest text-white block mb-0.5">{STYLE_CONFIGS[hoveredStyle].name}</span>
-                                            </div>
-                                        </div>
-                                        <p className="text-[10px] text-neutral-300 leading-relaxed px-1 font-medium italic">
-                                            "{STYLE_CONFIGS[hoveredStyle].desc}"
-                                        </p>
-                                    </div>
+                                {genMode === 'angles-batch' && (
+                                    <span className="text-[9px] bg-purple-500 text-white px-2 py-0.5 rounded-full animate-pulse">MODO TEST ACTIVADO</span>
                                 )}
+                            </label>
 
-                                {(Object.keys(STYLE_CONFIGS) as VisualStyle[]).map(s => (
-                                    <button
-                                        key={s}
-                                        onClick={() => setStyle(s)}
-                                        onMouseEnter={() => setHoveredStyle(s)}
-                                        onMouseLeave={() => setHoveredStyle(null)}
-                                        className={`relative py-3 px-2 rounded-xl border text-[10px] font-black transition-all uppercase tracking-tighter ${style === s ? 'bg-white text-black border-white shadow-lg scale-[1.02]' : 'border-white/5 text-neutral-500 hover:bg-white/5 hover:text-white'}`}
-                                    >
-                                        {STYLE_CONFIGS[s].name}
-                                        {s === 'auto' && <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[6px] px-1 py-0.5 rounded-full animate-pulse">RECOMENDADO</span>}
-                                    </button>
-                                ))}
-                            </div>
+                            {genMode === 'angles-batch' ? (
+                                <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 border border-purple-500/30 p-4 rounded-2xl space-y-2">
+                                    <div className="flex items-center gap-2 text-purple-200">
+                                        <Zap className="w-4 h-4" />
+                                        <p className="text-[10px] font-black uppercase tracking-widest">Estilos Disruptivos Activados</p>
+                                    </div>
+                                    <p className="text-[9px] text-neutral-400 font-medium leading-relaxed uppercase tracking-tighter">
+                                        En el modo <span className="text-white">VOLUMEN</span>, la IA generará estilos 100% creativos y diferentes entre sí para testear cuál funciona mejor. No es necesario elegir un estilo manual.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-3 relative">
+                                    {/* Hover Preview Card */}
+                                    {hoveredStyle && STYLE_CONFIGS[hoveredStyle] && (
+                                        <div className="absolute bottom-full left-0 mb-4 w-72 p-3 bg-neutral-950/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.7)] z-[100] animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-none transform origin-bottom">
+                                            <div className="relative aspect-video w-full rounded-lg overflow-hidden mb-3 border border-white/10">
+                                                <img src={STYLE_CONFIGS[hoveredStyle].preview} className="w-full h-full object-cover" alt="" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
+                                                <div className="absolute bottom-3 left-3 right-3">
+                                                    <span className="text-xs font-black uppercase tracking-widest text-white block mb-0.5">{STYLE_CONFIGS[hoveredStyle].name}</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] text-neutral-300 leading-relaxed px-1 font-medium italic">
+                                                "{STYLE_CONFIGS[hoveredStyle].desc}"
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {(Object.keys(STYLE_CONFIGS) as VisualStyle[]).map(s => (
+                                        <button
+                                            key={s}
+                                            onClick={() => setStyle(s)}
+                                            onMouseEnter={() => setHoveredStyle(s)}
+                                            onMouseLeave={() => setHoveredStyle(null)}
+                                            className={`relative py-3 px-2 rounded-xl border text-[10px] font-black transition-all uppercase tracking-tighter ${style === s ? 'bg-white text-black border-white shadow-lg scale-[1.02]' : 'border-white/5 text-neutral-500 hover:bg-white/5 hover:text-white'}`}
+                                        >
+                                            {STYLE_CONFIGS[s].name}
+                                            {s === 'auto' && <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[6px] px-1 py-0.5 rounded-full animate-pulse">RECOMENDADO</span>}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
+
 
                         {error && (
                             <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-start gap-4 animate-in fade-in slide-in-from-top-2">
@@ -1034,233 +1023,74 @@ const App: React.FC = () => {
                                         <button onClick={() => setEditorTab('image')} className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${editorTab === 'image' ? 'bg-neutral-800 text-white shadow-lg scale-100' : 'text-neutral-500 hover:text-white hover:bg-white/5'}`}>
                                             <ImageIcon className="w-4 h-4" /> IMAGEN
                                         </button>
-                                        <button onClick={() => setEditorTab('design')} className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${editorTab === 'design' ? 'bg-neutral-800 text-white shadow-lg scale-100' : 'text-neutral-500 hover:text-white hover:bg-white/5'}`}>
-                                            <BoxSelect className="w-4 h-4" /> MARCA
-                                        </button>
                                         <button onClick={() => setEditorTab('video')} className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${editorTab === 'video' ? 'bg-neutral-800 text-white shadow-lg scale-100' : 'text-neutral-500 hover:text-white hover:bg-white/5'}`}>
                                             <Video className="w-4 h-4" /> VIDEO
                                         </button>
                                     </div>
 
-                                    {/* TEXT EDITOR TAB */}
+                                    {/* TEXT EDITOR TAB (Simplified for Baked Mode) */}
                                     {editorTab === 'text' && (
-                                        project.textMode === 'overlay' ? (
-                                            <div className="space-y-5 animate-in fade-in duration-300">
-                                                {/* HEADLINE */}
-                                                <div className="space-y-4 p-5 bg-neutral-800/20 border border-white/5 rounded-2xl">
-                                                    <label className="text-xs font-black uppercase tracking-widest text-neutral-400 flex justify-between">
-                                                        Titular Principal
-                                                    </label>
-
-                                                    {/* COLOR PICKER REDESIGNED */}
-                                                    <div className="p-4 bg-black/40 rounded-xl border border-white/5 space-y-4">
-                                                        {/* Quick Palette */}
-                                                        <div className="flex gap-2 pb-2 overflow-x-auto no-scrollbar">
-                                                            {QUICK_COLORS.map(c => (
-                                                                <button
-                                                                    key={c}
-                                                                    onClick={() => updateSlide(activeSlideIdx, { headlineColor: c, headlineGradient: null })}
-                                                                    className="w-8 h-8 rounded-full border border-white/10 hover:scale-110 transition-transform shadow-lg shrink-0"
-                                                                    style={{ backgroundColor: c }}
-                                                                />
-                                                            ))}
-                                                        </div>
-
-                                                        <div className="flex gap-2 text-[10px] font-bold uppercase tracking-wider">
-                                                            <button onClick={() => removeGradient()} className={`flex-1 py-2 rounded-lg transition-all ${!project.slides[activeSlideIdx].headlineGradient ? 'bg-white text-black' : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-700'}`}>Sólido</button>
-                                                            <button onClick={() => applyGradient()} className={`flex-1 py-2 rounded-lg transition-all ${project.slides[activeSlideIdx].headlineGradient ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white' : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-700'}`}>Degradado</button>
-                                                        </div>
-
-                                                        {!project.slides[activeSlideIdx].headlineGradient ? (
-                                                            <div className="grid grid-cols-2 gap-3">
-                                                                <div className="relative h-10 rounded-xl overflow-hidden border border-white/10 cursor-pointer group col-span-1 bg-neutral-800">
-                                                                    <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/50 group-hover:text-white transition-colors z-10 pointer-events-none uppercase tracking-widest shrink-0">
-                                                                        Personalizado
-                                                                    </div>
-                                                                    <input
-                                                                        type="color"
-                                                                        value={project.slides[activeSlideIdx].headlineColor}
-                                                                        onChange={(e) => updateSlide(activeSlideIdx, { headlineColor: e.target.value })}
-                                                                        className="absolute -inset-4 w-[200%] h-[200%] cursor-pointer p-0 border-0 opacity-0"
-                                                                    />
-                                                                    <div className="absolute bottom-1 right-1 w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: project.slides[activeSlideIdx].headlineColor }} />
-                                                                </div>
-                                                                <button
-                                                                    onClick={toggleHeadlineBg}
-                                                                    className={`col-span-1 h-10 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${project.slides[activeSlideIdx].headlineBgColor ? 'bg-white text-black border-white' : 'bg-transparent border-white/10 text-neutral-500 hover:bg-white/5'}`}
-                                                                >
-                                                                    <Highlighter className="w-4 h-4" /> Resaltar
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="grid grid-cols-2 gap-3">
-                                                                <div>
-                                                                    <div className="relative h-10 rounded-xl overflow-hidden border border-white/10 bg-neutral-800">
-                                                                        <input type="color" value={gradientStart} onChange={(e) => { setGradientStart(e.target.value); applyGradient(); }} className="absolute -inset-4 w-[200%] h-[200%] cursor-pointer" />
-                                                                    </div>
-                                                                </div>
-                                                                <div>
-                                                                    <div className="relative h-10 rounded-xl overflow-hidden border border-white/10 bg-neutral-800">
-                                                                        <input type="color" value={gradientEnd} onChange={(e) => { setGradientEnd(e.target.value); applyGradient(); }} className="absolute -inset-4 w-[200%] h-[200%] cursor-pointer" />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    <textarea
-                                                        value={project.slides[activeSlideIdx].headline}
-                                                        onChange={(e) => updateSlide(activeSlideIdx, { headline: e.target.value })}
-                                                        className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-base font-bold h-28 text-white focus:ring-1 ring-white/20 outline-none leading-snug"
-                                                    />
-
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div className="col-span-2">
-                                                            <label className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 block">Tipografía</label>
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                <select
-                                                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-white/30"
-                                                                    value={project.slides[activeSlideIdx].headlineFont || ''}
-                                                                    onChange={(e) => updateSlide(activeSlideIdx, { headlineFont: e.target.value })}
-                                                                >
-                                                                    <option value="">Defecto (IA)</option>
-                                                                    {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.name}</option>)}
-                                                                </select>
-                                                                <select
-                                                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-white/30"
-                                                                    value={project.slides[activeSlideIdx].headlineFontWeight || '800'}
-                                                                    onChange={(e) => updateSlide(activeSlideIdx, { headlineFontWeight: e.target.value })}
-                                                                >
-                                                                    <option value="300">Light</option>
-                                                                    <option value="400">Regular</option>
-                                                                    <option value="500">Medium</option>
-                                                                    <option value="700">Bold</option>
-                                                                    <option value="800">Extra Bold</option>
-                                                                    <option value="900">Black</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 block">Tamaño ({project.slides[activeSlideIdx].headlineSize}px)</label>
-                                                            <input type="range" min="12" max="150" value={project.slides[activeSlideIdx].headlineSize} onChange={(e) => updateSlide(activeSlideIdx, { headlineSize: parseInt(e.target.value) })} className="w-full h-2 bg-neutral-700 rounded-lg accent-white cursor-pointer" />
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 block">Altura Línea</label>
-                                                            <input type="range" min="0.8" max="2.0" step="0.1" value={project.slides[activeSlideIdx].headlineLineHeight} onChange={(e) => updateSlide(activeSlideIdx, { headlineLineHeight: parseFloat(e.target.value) })} className="w-full h-2 bg-neutral-700 rounded-lg accent-white cursor-pointer" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* KEYWORD HIGHLIGHT STYLE */}
-                                                <div className="space-y-4 p-5 bg-neutral-800/20 border border-white/5 rounded-2xl">
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Palabra Clave (*)</label>
-                                                        <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/20 cursor-pointer hover:scale-110 transition-transform">
-                                                            <input type="color" value={project.slides[activeSlideIdx].highlightColor || '#facc15'} onChange={(e) => updateSlide(activeSlideIdx, { highlightColor: e.target.value })} className="absolute -inset-2 w-[200%] h-[200%] cursor-pointer" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        <select
-                                                            className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-white/30"
-                                                            value={project.slides[activeSlideIdx].highlightFont || ''}
-                                                            onChange={(e) => updateSlide(activeSlideIdx, { highlightFont: e.target.value })}
-                                                        >
-                                                            <option value="">Igual al Titular</option>
-                                                            {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.name}</option>)}
-                                                        </select>
-                                                        <select
-                                                            className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-white/30"
-                                                            value={project.slides[activeSlideIdx].highlightFontWeight || '400'}
-                                                            onChange={(e) => updateSlide(activeSlideIdx, { highlightFontWeight: e.target.value })}
-                                                        >
-                                                            <option value="300">Light</option>
-                                                            <option value="400">Regular</option>
-                                                            <option value="500">Medium</option>
-                                                            <option value="700">Bold</option>
-                                                            <option value="800">Extra Bold</option>
-                                                            <option value="900">Black</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-
-                                                {/* SUBHEADLINE */}
-                                                <div className="space-y-4 p-5 bg-neutral-800/20 border border-white/5 rounded-2xl">
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Texto Secundario</label>
-                                                        <div className="relative w-8 h-8 rounded-full overflow-hidden border border-white/20 cursor-pointer hover:scale-110 transition-transform">
-                                                            <input type="color" value={project.slides[activeSlideIdx].subHeadlineColor} onChange={(e) => updateSlide(activeSlideIdx, { subHeadlineColor: e.target.value })} className="absolute -inset-2 w-[200%] h-[200%] cursor-pointer" />
-                                                        </div>
-                                                    </div>
-                                                    <textarea value={project.slides[activeSlideIdx].subHeadline} onChange={(e) => updateSlide(activeSlideIdx, { subHeadline: e.target.value })} className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm h-24 text-neutral-300 focus:ring-1 ring-white/20 outline-none" />
-
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
-                                                            <div className="flex justify-between text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-2"><span>Tamaño</span><span>{project.slides[activeSlideIdx].subHeadlineSize}px</span></div>
-                                                            <input type="range" min="8" max="60" value={project.slides[activeSlideIdx].subHeadlineSize} onChange={(e) => updateSlide(activeSlideIdx, { subHeadlineSize: parseInt(e.target.value) })} className="w-full h-2 bg-neutral-700 rounded-lg accent-white cursor-pointer" />
-                                                        </div>
-                                                        <div>
-                                                            <div className="flex justify-between text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-2"><span>Peso</span></div>
-                                                            <select
-                                                                className="w-full bg-black/40 border border-white/10 rounded-lg p-1.5 text-xs text-white focus:outline-none focus:border-white/30 h-8"
-                                                                value={project.slides[activeSlideIdx].subHeadlineFontWeight || '400'}
-                                                                onChange={(e) => updateSlide(activeSlideIdx, { subHeadlineFontWeight: e.target.value })}
-                                                            >
-                                                                <option value="300">Light</option>
-                                                                <option value="400">Regular</option>
-                                                                <option value="500">Medium</option>
-                                                                <option value="700">Bold</option>
-                                                                <option value="900">Black</option>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Alignment */}
-                                                <div className="flex bg-black/40 p-1.5 rounded-xl border border-white/5">
-                                                    {(['left', 'center', 'right'] as const).map(a => (
-                                                        <button key={a} onClick={() => updateSlide(activeSlideIdx, { textAlign: a })} className={`flex-1 py-3 rounded-lg flex items-center justify-center transition-all ${project.slides[activeSlideIdx].textAlign === a ? 'bg-white/10 text-white shadow-sm' : 'text-neutral-600 hover:text-white'}`}>
-                                                            {a === 'left' ? <AlignLeft className="w-5 h-5" /> : a === 'center' ? <AlignCenter className="w-5 h-5" /> : <AlignRight className="w-5 h-5" />}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="p-10 text-center border-2 border-dashed border-purple-500/30 rounded-3xl bg-purple-500/5 flex flex-col items-center gap-4">
-                                                <div className="p-4 bg-purple-500/10 rounded-full">
-                                                    <Sparkles className="w-8 h-8 text-purple-400" />
+                                        <div className="space-y-5 animate-in fade-in duration-300">
+                                            <div className="p-6 text-center border-2 border-dashed border-yellow-500/30 rounded-3xl bg-yellow-500/5 flex flex-col items-center gap-4">
+                                                <div className="p-4 bg-yellow-500/10 rounded-full">
+                                                    <Sparkles className="w-8 h-8 text-yellow-400" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm text-purple-200 font-bold uppercase tracking-widest">Modo Artístico (Baked)</p>
-                                                    <p className="text-xs text-purple-400/70 mt-2 max-w-xs mx-auto leading-relaxed">El texto está "fusionado" artísticamente en la imagen por la IA. Para editarlo, cambia el texto arriba y pulsa "NUEVA IMAGEN".</p>
+                                                    <p className="text-sm text-yellow-200 font-bold uppercase tracking-widest">IA: Nano Banana 2</p>
+                                                    <p className="text-xs text-yellow-400/70 mt-2 max-w-xs mx-auto leading-relaxed">
+                                                        El diseño y el texto están fusionados por la IA para un resultado ultra profesional.
+                                                        Para cambiar el copy, edita el texto abajo y pulsa <strong className="text-white">"NUEVA IMAGEN"</strong>.
+                                                    </p>
                                                 </div>
                                             </div>
-                                        )
+
+                                            <div className="space-y-4 p-5 bg-neutral-800/20 border border-white/5 rounded-2xl">
+                                                <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Texto del Botón (CTA)</label>
+                                                <input
+                                                    type="text"
+                                                    value={project.slides[activeSlideIdx].cta || ''}
+                                                    onChange={(e) => updateSlide(activeSlideIdx, { cta: e.target.value })}
+                                                    placeholder="Ej: COMPRAR AHORA"
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm font-bold text-white focus:ring-1 ring-white/20 outline-none"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-4 p-5 bg-neutral-800/20 border border-white/5 rounded-2xl">
+                                                <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Titular Publicitario</label>
+                                                <textarea
+                                                    value={project.slides[activeSlideIdx].headline}
+                                                    onChange={(e) => updateSlide(activeSlideIdx, { headline: e.target.value })}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-base font-bold h-24 text-white focus:ring-1 ring-white/20 outline-none leading-snug"
+                                                />
+                                            </div>
+
+                                            <div className="space-y-4 p-5 bg-neutral-800/20 border border-white/5 rounded-2xl">
+                                                <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Sub-titular / Gancho</label>
+                                                <textarea
+                                                    value={project.slides[activeSlideIdx].subHeadline}
+                                                    onChange={(e) => updateSlide(activeSlideIdx, { subHeadline: e.target.value })}
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm text-neutral-300 h-20 focus:ring-1 ring-white/20 outline-none leading-snug"
+                                                />
+                                            </div>
+                                        </div>
                                     )}
 
-                                    {/* IMAGE EDITOR TAB */}
+                                    {/* IMAGE EDITOR TAB (AI Focused) */}
                                     {editorTab === 'image' && (
                                         <div className="space-y-6 animate-in fade-in duration-300 p-2">
                                             {/* VISUAL PROMPT EDITOR */}
                                             <div className="space-y-3 pb-6 border-b border-white/5">
                                                 <div className="flex justify-between items-center">
                                                     <label className="text-xs font-black uppercase tracking-widest text-neutral-500">Prompt Visual (IA)</label>
-                                                    <button
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText(project.slides[activeSlideIdx].visualPrompt);
-                                                        }}
-                                                        className="text-[10px] text-neutral-500 hover:text-white flex items-center gap-1 transition-colors"
-                                                    >
-                                                        <Copy className="w-3 h-3" /> Copiar
-                                                    </button>
                                                 </div>
                                                 <textarea
                                                     value={project.slides[activeSlideIdx].visualPrompt}
                                                     onChange={(e) => updateSlide(activeSlideIdx, { visualPrompt: e.target.value })}
-                                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-neutral-400 focus:text-white focus:border-blue-500/50 outline-none resize-none h-20 leading-relaxed"
+                                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-neutral-400 focus:text-white focus:border-blue-500/50 outline-none resize-none h-24 leading-relaxed font-mono"
                                                     placeholder="Describe la imagen que quieres..."
                                                 />
                                                 <p className="text-[10px] text-neutral-600">
-                                                    Edita este texto y pulsa <strong className="text-neutral-400">"NUEVA IMAGEN"</strong> arriba para regenerar con estos cambios.
+                                                    Edita este texto y pulsa <strong className="text-neutral-400">"NUEVA IMAGEN"</strong> arriba para aplicar cambios.
                                                 </p>
                                             </div>
 
@@ -1271,150 +1101,36 @@ const App: React.FC = () => {
                                             </div>
 
                                             {/* MAGIC EDIT SECTION */}
-                                            <div className="p-5 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl space-y-4">
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <Wand2 className="w-4 h-4 text-indigo-400" />
-                                                    <label className="text-xs font-black uppercase tracking-widest text-indigo-200">Edición Mágica (IA)</label>
+                                            <div className="p-5 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl space-y-4 shadow-lg shadow-indigo-500/5">
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                                                        <Sparkles className="w-4 h-4 text-indigo-400" />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-indigo-400">AI Magic Edit</label>
+                                                        <span className="text-[9px] text-neutral-500 font-bold">Edita con lenguaje natural</span>
+                                                    </div>
                                                 </div>
                                                 <div className="relative">
                                                     <textarea
                                                         value={editPrompt}
                                                         onChange={(e) => setEditPrompt(e.target.value)}
-                                                        placeholder="Ej: 'Añade un filtro retro' o 'Quita el fondo'..."
-                                                        className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-xs text-white focus:border-indigo-500/50 outline-none resize-none h-20 leading-relaxed"
+                                                        placeholder="Ej: 'Transforma esto en un estilo cyberpunk' o 'Añade un coche deportivo'..."
+                                                        className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-xs text-white focus:border-indigo-500/50 outline-none resize-none h-24 leading-relaxed"
                                                     />
                                                     <button
                                                         onClick={handleEditImage}
                                                         disabled={isEditingImage || !editPrompt.trim() || !project.slides[activeSlideIdx].backgroundImageUrl}
-                                                        className="absolute bottom-3 right-3 p-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-400 disabled:opacity-50 transition-all shadow-lg"
+                                                        className="absolute bottom-3 right-3 p-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-400 disabled:opacity-50 transition-all shadow-xl hover:scale-110 active:scale-95"
                                                     >
-                                                        {isEditingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                                                        {isEditingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                                                     </button>
                                                 </div>
-                                                <p className="text-[10px] text-indigo-300/60 leading-tight">
-                                                    Usa Gemini 2.5 Flash para editar la imagen actual con lenguaje natural.
-                                                </p>
                                             </div>
-
-                                            {/* Filters */}
-                                            <div className="space-y-6">
-                                                {[
-                                                    { label: 'Brillo', key: 'imageBrightness', min: 0, max: 200, unit: '%' },
-                                                    { label: 'Contraste', key: 'imageContrast', min: 0, max: 200, unit: '%' },
-                                                    { label: 'Saturación', key: 'imageSaturation', min: 0, max: 200, unit: '%' },
-                                                    { label: 'Desenfoque', key: 'imageBlur', min: 0, max: 20, unit: 'px', step: 0.5 }
-                                                ].map((control) => (
-                                                    <div key={control.key} className="space-y-2">
-                                                        <div className="flex justify-between text-xs font-bold text-neutral-400 uppercase tracking-widest">
-                                                            <span>{control.label}</span>
-                                                            <span className="text-white">{(project.slides[activeSlideIdx] as any)[control.key]}{control.unit}</span>
-                                                        </div>
-                                                        <input
-                                                            type="range"
-                                                            min={control.min}
-                                                            max={control.max}
-                                                            step={control.step || 1}
-                                                            value={(project.slides[activeSlideIdx] as any)[control.key]}
-                                                            onChange={(e) => updateSlide(activeSlideIdx, { [control.key]: parseFloat(e.target.value) })}
-                                                            className="w-full h-2 bg-neutral-700 rounded-lg accent-white cursor-pointer"
-                                                        />
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {project.textMode === 'overlay' && (
-                                                <div className="pt-6 border-t border-white/5 space-y-3">
-                                                    <div className="flex justify-between text-xs font-black text-neutral-400 uppercase tracking-widest">
-                                                        <span>Oscuridad Capa (Overlay)</span>
-                                                        <span className="text-white">{Math.round(project.slides[activeSlideIdx].overlayOpacity * 100)}%</span>
-                                                    </div>
-                                                    <input type="range" min="0" max="0.95" step="0.05" value={project.slides[activeSlideIdx].overlayOpacity} onChange={(e) => updateSlide(activeSlideIdx, { overlayOpacity: parseFloat(e.target.value) })} className="w-full h-2 bg-neutral-700 rounded-lg accent-yellow-500 cursor-pointer" />
-                                                </div>
-                                            )}
                                         </div>
                                     )}
 
-                                    {/* CTA / DESIGN TAB */}
-                                    {editorTab === 'design' && (
-                                        <div className="space-y-6 animate-in fade-in duration-300 p-2">
-                                            {/* BRANDING SECTION */}
-                                            <div className="space-y-3 pb-6 border-b border-white/5">
-                                                <label className="text-xs font-black uppercase text-white flex items-center gap-2 tracking-widest">
-                                                    <AtSign className="w-4 h-4 text-yellow-500" /> Marca de Agua (Handle)
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={project.brandHandle || ''}
-                                                    onChange={(e) => setProject(prev => prev ? { ...prev, brandHandle: e.target.value } : null)}
-                                                    placeholder="@tu_marca"
-                                                    className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm font-medium text-white placeholder:text-neutral-600 focus:outline-none focus:border-white/30"
-                                                />
-                                                <p className="text-[10px] text-neutral-500">Se aplicará a todos los slides automáticamente.</p>
-                                            </div>
 
-                                            <div className="space-y-3 pt-2">
-                                                <label className="text-xs font-black uppercase text-white tracking-widest">Texto del Botón (CTA)</label>
-                                                <input type="text" value={project.slides[activeSlideIdx].cta || ''} onChange={(e) => updateSlide(activeSlideIdx, { cta: e.target.value })} placeholder="Ej: COMPRAR AHORA" className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-sm font-bold text-white focus:outline-none focus:border-white/30" />
-                                            </div>
-
-                                            {project.slides[activeSlideIdx].cta && (
-                                                <div className="space-y-5 p-5 bg-neutral-800/20 border border-white/5 rounded-2xl">
-                                                    <div className="grid grid-cols-2 gap-5">
-                                                        <div className="col-span-2">
-                                                            <label className="text-[10px] text-neutral-500 font-bold uppercase block mb-2 tracking-widest">Fondo (Sólido o Degradado)</label>
-
-                                                            <div className="space-y-3">
-                                                                <div className="flex gap-2 text-[10px] font-bold uppercase tracking-wider">
-                                                                    <button onClick={() => updateSlide(activeSlideIdx, { ctaBgGradient: null })} className={`flex-1 py-2 rounded-lg transition-all ${!project.slides[activeSlideIdx].ctaBgGradient ? 'bg-white text-black' : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-700'}`}>Sólido</button>
-                                                                    <button onClick={() => applyCtaGradient()} className={`flex-1 py-2 rounded-lg transition-all ${project.slides[activeSlideIdx].ctaBgGradient ? 'bg-gradient-to-r from-orange-400 to-pink-500 text-white' : 'bg-neutral-800 text-neutral-500 hover:bg-neutral-700'}`}>Degradado</button>
-                                                                </div>
-
-                                                                {!project.slides[activeSlideIdx].ctaBgGradient ? (
-                                                                    <div className="relative h-10 rounded-xl overflow-hidden border border-white/10 cursor-pointer bg-neutral-800">
-                                                                        <input type="color" value={project.slides[activeSlideIdx].ctaBgColor || '#ffffff'} onChange={(e) => updateSlide(activeSlideIdx, { ctaBgColor: e.target.value })} className="absolute -inset-4 w-[200%] h-[200%] cursor-pointer p-0 border-0" />
-                                                                    </div>
-                                                                ) : (
-                                                                    <div className="grid grid-cols-2 gap-3 p-3 bg-black/40 rounded-xl border border-white/5">
-                                                                        <input type="color" className="w-full h-8 bg-transparent cursor-pointer" value={ctaGradStart} onChange={(e) => { setCtaGradStart(e.target.value); applyCtaGradient(); }} />
-                                                                        <input type="color" className="w-full h-8 bg-transparent cursor-pointer" value={ctaGradEnd} onChange={(e) => { setCtaGradEnd(e.target.value); applyCtaGradient(); }} />
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <div>
-                                                            <label className="text-[10px] text-neutral-500 font-bold uppercase block mb-2 tracking-widest">Color Texto</label>
-                                                            <div className="relative h-10 rounded-xl overflow-hidden border border-white/10 cursor-pointer bg-neutral-800">
-                                                                <input type="color" value={project.slides[activeSlideIdx].ctaColor || '#000000'} onChange={(e) => updateSlide(activeSlideIdx, { ctaColor: e.target.value })} className="absolute -inset-4 w-[200%] h-[200%] cursor-pointer p-0 border-0" />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div>
-                                                        <label className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest mb-2 block">Tipografía</label>
-                                                        <select className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none" value={project.slides[activeSlideIdx].ctaFont || ''} onChange={(e) => updateSlide(activeSlideIdx, { ctaFont: e.target.value })}>
-                                                            <option value="">Igual al Titular</option>
-                                                            {FONT_OPTIONS.map(f => <option key={f.value} value={f.value}>{f.name}</option>)}
-                                                        </select>
-                                                    </div>
-
-                                                    <div>
-                                                        <div className="flex justify-between text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-2"><span>Redondez</span><span>{project.slides[activeSlideIdx].ctaRoundness}px</span></div>
-                                                        <input type="range" min="0" max="30" value={project.slides[activeSlideIdx].ctaRoundness} onChange={(e) => updateSlide(activeSlideIdx, { ctaRoundness: parseInt(e.target.value) })} className="w-full h-2 bg-neutral-700 rounded-lg accent-white mt-1 cursor-pointer" />
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between pt-2">
-                                                        <label className="text-[10px] text-neutral-500 uppercase font-bold tracking-widest">Sombra 3D</label>
-                                                        <button
-                                                            onClick={() => updateSlide(activeSlideIdx, { ctaShadow: !project.slides[activeSlideIdx].ctaShadow })}
-                                                            className={`w-12 h-6 rounded-full transition-colors flex items-center px-1 ${project.slides[activeSlideIdx].ctaShadow ? 'bg-green-500' : 'bg-neutral-700'}`}
-                                                        >
-                                                            <div className={`w-4 h-4 bg-white rounded-full transition-transform ${project.slides[activeSlideIdx].ctaShadow ? 'translate-x-6' : 'translate-x-0'}`} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
 
                                     {/* VIDEO TAB */}
                                     {editorTab === 'video' && (
