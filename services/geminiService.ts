@@ -232,10 +232,9 @@ export const generateAdCopy = async (
   };
 
   const models = [
-    "models/gemini-2.0-flash",     // Nano Banana 2
-    "models/gemini-1.5-flash",     // Estable y rápido
-    "models/gemini-1.5-flash-8b",  // Ultra-backup
-    "models/gemini-1.5-pro"        // Calidad superior
+    "models/gemini-2.0-flash",
+    "models/gemini-1.5-flash",
+    "models/gemini-1.5-pro"
   ];
 
   for (const model of models) {
@@ -295,7 +294,7 @@ export const generateSlideImage = async (
   const imgModels = [
     'models/imagen-3.0-generate-001',
     'models/imagen-3.0-fast-generate-001',
-    'models/gemini-2.0-flash-exp' // Exp multimodal support
+    'models/gemini-2.0-flash'
   ];
 
   for (const model of imgModels) {
