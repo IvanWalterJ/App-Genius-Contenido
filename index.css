@@ -1,4 +1,3 @@
-/* AdGenius AI Base Styles */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -12,6 +11,90 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: 'Inter', sans-serif;
+  background-color: #0a0a0a;
+  color: #ffffff;
+  overflow-x: hidden;
+}
+
+.font-brand {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.font-display {
+  font-family: 'Bebas+Neue', cursive;
+}
+
+.font-serif {
+  font-family: 'Playfair Display', serif;
+}
+
+.font-hand {
+  font-family: 'Patrick Hand', cursive;
+}
+
+.font-modern {
+  font-family: 'Poppins', sans-serif;
+}
+
+.font-oswald {
+  font-family: 'Oswald', sans-serif;
+}
+
+.font-merriweather {
+  font-family: 'Merriweather', serif;
+}
+
+.font-lobster {
+  font-family: 'Lobster', cursive;
+}
+
+.font-abril {
+  font-family: 'Abril Fatface', cursive;
+}
+
+.font-lato {
+  font-family: 'Lato', sans-serif;
+}
+
+.font-raleway {
+  font-family: 'Raleway', sans-serif;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -27,14 +110,4 @@ body {
   body {
     @apply bg-[#0a0a0a] text-white;
   }
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.animate-fadeIn {
-  animation: fadeIn 0.5s ease-out forwards;
 }

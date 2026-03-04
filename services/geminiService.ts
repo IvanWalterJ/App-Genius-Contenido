@@ -292,9 +292,10 @@ export const generateSlideImage = async (
   }
 
   const imgModels = [
-    'models/imagen-3.0-generate-001',
-    'models/imagen-3.0-fast-generate-001',
-    'models/gemini-2.0-flash'
+    'models/gemini-3.1-flash-image', // Nano Banana 2 (Official Name)
+    'models/gemini-3.1-pro-image',   // Pro version
+    'models/imagen-3.0-generate-002',
+    'models/gemini-2.0-flash'        // Fallback with modality
   ];
 
   for (const model of imgModels) {
@@ -302,7 +303,8 @@ export const generateSlideImage = async (
       console.log(`Image Generation: Trying ${model}...`);
 
       const configObj: any = {
-        responseModalities: ['IMAGE'],
+        // Some models require both TEXT and IMAGE or just Modalites
+        responseModalities: model.includes('gemini') ? ['TEXT', 'IMAGE'] : ['IMAGE'],
         // Explicitly pass standard aspect ratios if provided
         aspectRatio: aspectRatio
       };
