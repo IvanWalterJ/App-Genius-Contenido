@@ -93,6 +93,7 @@ export interface AdProject {
   accentColor: string;
   accentGradient: string;
   brandHandle?: string;
+  designReference?: string;
 
   slides: Slide[];
 }

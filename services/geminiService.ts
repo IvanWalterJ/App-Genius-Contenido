@@ -104,7 +104,7 @@ export const enhancePrompt = async (rawPrompt: string): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
-      model: "models/gemini-2.0-flash",
+      model: "models/gemini-1.5-flash",
       contents: [{ parts: [{ text: `Rewrite prompt for marketing. Input: "${rawPrompt}". Output Spanish. Keep it short. Return ONLY text.` }] }],
     });
     return response.text?.trim() || rawPrompt;
@@ -120,9 +120,10 @@ export const generateAdCopy = async (
   intent: ContentIntent,
   style: VisualStyle,
   brandContext: BrandContext,
-  referenceImage?: string,
+  styleReference?: string,
   knowledgeBase?: string,
-  textMode: 'overlay' | 'baked' = 'overlay'
+  textMode: 'overlay' | 'baked' = 'overlay',
+  characterReference?: string
 ): Promise<any> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
@@ -148,14 +149,21 @@ export const generateAdCopy = async (
   
   Idea Central: "${prompt}"
 
-  ESTRATEGIA DE DISEÑO Y VISUALES:
-  ${isVolume ? '- VARIACIONES DISRUPTIVAS: En este modo, cada slide debe tener un VisualPrompt con una atmósfera COMPLETAMENTE diferente a la anterior (ej: una minimalista, otra brutalista, otra 3D surrealista, etc). No busques consistencia, busca IMPACTO INDIVIDUAL para testeo.' : '- EXTREMA CONSISTENCIA: Todas las imágenes deben usar la misma paleta y estilo publicitario de alto nivel.'}
-  - Crea una IDENTIDAD VISUAL coherente exclusivamente con el sector: ${brandContext.niche}.
-  - Los VisualPrompts deben reflejar escenarios, objetos y atmósferas relevantes para ${brandContext.targetAudience}.
-  - TEXTO INTEGRADO (BAKED): Si el modo es 'baked', describe cómo el texto se fusiona (ej: luces LED, 3D sobre superficie, etc). No incluyas asteriscos.
-  - Define esta identidad en el objeto 'designTheme' al inicio del JSON.
   - HeadlineSize sugeridos: 40-70 para Single, 35-50 para Carrusel.
+  ${brandContext.tone ? `- TONO ESPECÍFICO: ${brandContext.tone}.` : ''}
   `;
+
+  if (styleReference) {
+    sysInstruction += `\nESTILO VISUAL Y TIPOGRÁFICO DE REFERENCIA: Se ha proporcionado una imagen de marca. Analízala y extrae:
+    1. Paleta de colores dominante y acentos.
+    2. Identificación de Tipografía: si es sans-serif moderna, serif elegante, manuscrita, etc.
+    3. Atmósfera: minimalista, vibrante, oscura, corporativa, etc.
+    APLICA este mismo ADN visual a toda la campaña. Es fundamental que el resultado final sea consistente con esta referencia de diseño.`;
+  }
+
+  if (characterReference) {
+    sysInstruction += `\nPERSONAJE DE REFERENCIA: Se ha proporcionado una imagen de una persona. La IA debe mantener la consistencia física de esta persona en todas las escenas generadas.`;
+  }
 
   const hasSlideMarkers = /slide \d+/i.test(prompt) || /\[slide \d+\]/i.test(prompt);
 
@@ -177,8 +185,12 @@ export const generateAdCopy = async (
   sysInstruction += `\n\nREGLA DE ORO DE TEXTO: Si la Idea Central parece ser un copy terminado o contiene instrucciones de texto específicas, tu prioridad es la FIDELIDAD. No cambies el mensaje del usuario. Úsalo como headline principal.`;
 
   const contentParts: any[] = [];
-  if (referenceImage) {
-    const base64Data = referenceImage.split(',')[1];
+  if (styleReference) {
+    const base64Data = styleReference.split(',')[1];
+    contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+  }
+  if (characterReference) {
+    const base64Data = characterReference.split(',')[1];
     contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
   }
   contentParts.push({ text: sysInstruction });
@@ -220,9 +232,10 @@ export const generateAdCopy = async (
   };
 
   const models = [
-    "gemini-2.0-flash",           // Principal (Nano Banana 2)
-    "gemini-1.5-flash-latest",    // Backup Robusto
-    "gemini-1.5-flash-8b"         // Backup Ultra-Rápido
+    "models/gemini-2.0-flash",     // Nano Banana 2
+    "models/gemini-1.5-flash",     // Estable y rápido
+    "models/gemini-1.5-flash-8b",  // Ultra-backup
+    "models/gemini-1.5-pro"        // Calidad superior
   ];
 
   for (const model of models) {
@@ -254,7 +267,8 @@ export const generateSlideImage = async (
   isBatch: boolean = false,
   headlineFont?: string,
   characterReference?: string,
-  customStyle?: string
+  customStyle?: string,
+  styleReference?: string
 ): Promise<string> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
@@ -279,9 +293,9 @@ export const generateSlideImage = async (
   }
 
   const imgModels = [
-    'imagen-3.0-generate-001',    // Calidad Pro
-    'gemini-2.0-flash',           // Multimodal Nativo
-    'imagen-3.0-fast-generate-001' // Velocidad
+    'models/imagen-3.0-generate-001',
+    'models/imagen-3.0-fast-generate-001',
+    'models/gemini-2.0-flash-exp' // Exp multimodal support
   ];
 
   for (const model of imgModels) {
@@ -295,6 +309,13 @@ export const generateSlideImage = async (
       };
 
       const contentParts: any[] = [{ text: fullPrompt }];
+
+      if (styleReference) {
+        const base64Data = styleReference.split(',')[1];
+        contentParts.unshift({ inlineData: { mimeType: "image/png", data: base64Data } });
+        fullPrompt += ` MANDATORY: Adhere to the visual style, color palette, and design aesthetic of the provided style reference image.`;
+      }
+
       if (characterReference) {
         const base64Data = characterReference.split(',')[1];
         contentParts.unshift({ inlineData: { mimeType: "image/png", data: base64Data } });
@@ -336,7 +357,7 @@ export const regenerateSlideCopy = async (
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
-      model: "models/gemini-2.0-flash",
+      model: "models/gemini-1.5-flash",
       contents: [{ parts: [{ text: `Rewrite ad copy. Slide ${slideIndex + 1}/${totalSlides}. Goal: ${projectGoal}. Current: ${currentHeadline}. Output JSON {headline, subHeadline, cta}.` }] }],
       config: { responseMimeType: "application/json" }
     });
@@ -351,7 +372,7 @@ export const magicRewrite = async (text: string, tone: string): Promise<string> 
   const ai = new GoogleGenAI({ apiKey });
   try {
     const response = await ai.models.generateContent({
-      model: "models/gemini-2.0-flash",
+      model: "models/gemini-1.5-flash",
       contents: [{ parts: [{ text: `Rewrite: "${text}" to be ${tone}. Spanish. Return ONLY text.` }] }],
     });
     return response.text?.trim() || text;
@@ -366,7 +387,7 @@ export const editImage = async (base64Image: string, prompt: string): Promise<st
   const base64Data = base64Image.split(',')[1] || base64Image;
   try {
     const response = await ai.models.generateContent({
-      model: 'models/gemini-2.0-flash',
+      model: 'models/gemini-1.5-flash',
       contents: [{
         parts: [
           { inlineData: { data: base64Data, mimeType: "image/png" } },

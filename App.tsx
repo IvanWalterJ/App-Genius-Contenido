@@ -64,6 +64,7 @@ const App: React.FC = () => {
     const [knowledgeBase, setKnowledgeBase] = useState<string | null>(null);
     const [kbFileName, setKbFileName] = useState<string | null>(null);
     const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
+    const designInputRef = useRef<HTMLInputElement>(null);
 
     // Text Mode (Baked by default for Nano Banana 2)
     const [textMode, setTextMode] = useState<'overlay' | 'baked'>('baked');
@@ -75,6 +76,8 @@ const App: React.FC = () => {
         targetAudience: '',
         tone: 'Profesional y Persuasivo'
     });
+
+    const [designReference, setDesignReference] = useState<string | null>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const bgInputRef = useRef<HTMLInputElement>(null);
@@ -140,6 +143,15 @@ const App: React.FC = () => {
         }
     };
 
+    const handleDesignRefUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => setDesignReference(reader.result as string);
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleEnhancePrompt = async () => {
         if (!prompt.trim()) return;
         setIsEnhancingPrompt(true);
@@ -194,7 +206,8 @@ const App: React.FC = () => {
         try {
             const copyResult = await generateAdCopy(
                 prompt, genMode, intent, style, brandContext,
-                refImage || undefined, knowledgeBase || undefined, textMode
+                designReference || undefined, knowledgeBase || undefined, textMode,
+                refImage || undefined
             );
 
             const newProject: AdProject = {
@@ -285,7 +298,7 @@ const App: React.FC = () => {
                         updatedSlides[i].visualPrompt, style, useReferenceStyle, aspectRatio,
                         updatedSlides[i].headline, 'baked', updatedSlides[i].subHeadline, slideAccent,
                         genMode === 'angles-batch', updatedSlides[i].headlineFont, refImage || undefined,
-                        updatedSlides[i].customStyle
+                        updatedSlides[i].customStyle, designReference || undefined
                     );
                 } catch (imgErr: any) {
                     imageError = "Error de IA";
@@ -668,6 +681,39 @@ const App: React.FC = () => {
                                     className="hidden"
                                     accept="image/*"
                                     onChange={handleRefImageUpload}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Referencia de Estilo Visual</label>
+                            <div
+                                onClick={() => designInputRef.current?.click()}
+                                className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all group ${designReference ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-neutral-800/30 border-white/10 hover:bg-neutral-800/50'}`}
+                            >
+                                <div className={`w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center border border-white/10 ${designReference ? 'bg-indigo-500/20' : 'bg-neutral-800 text-neutral-500'}`}>
+                                    {designReference ? <img src={designReference} className="w-full h-full object-cover" alt="Design Ref" /> : <Palette className="w-5 h-5" />}
+                                </div>
+                                <div className="flex-1 overflow-hidden">
+                                    <p className={`text-sm font-bold truncate ${designReference ? 'text-indigo-200' : 'text-neutral-300 group-hover:text-white'}`}>
+                                        {designReference ? "Estilo Cargado" : "Subir Referencia (Branding/Diseño)"}
+                                    </p>
+                                    <p className="text-[10px] text-neutral-500 mt-0.5 uppercase font-black tracking-tighter">La IA imitará la tipografía y colores de esta imagen</p>
+                                </div>
+                                {designReference && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setDesignReference(null); }}
+                                        className="p-1 hover:bg-red-500/20 rounded-md text-red-400 transition-colors"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                )}
+                                <input
+                                    type="file"
+                                    ref={designInputRef}
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={handleDesignRefUpload}
                                 />
                             </div>
                         </div>
