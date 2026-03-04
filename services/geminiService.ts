@@ -123,34 +123,40 @@ export const generateAdCopy = async (
   styleReference?: string,
   knowledgeBase?: string,
   textMode: 'overlay' | 'baked' = 'overlay',
-  characterReference?: string
+  characterReference?: string,
+  slideCount: number = 6
 ): Promise<any> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
 
   const isVolume = type === 'angles-batch';
+  const targetSlides = type === 'single-image' ? 1 : (type === 'angles-batch' ? 6 : slideCount);
 
-  let sysInstruction = `Rol: Director Creativo y Copywriter de Respuesta Directa (Direct Response) de Élite.
-  Tu especialidad es el "Marketing de Impacto" y la psicología de ventas de alto CTR.
+  let sysInstruction = `Rol: Director Creativo y Copywriter de Respuesta Directa de Élite, especializado en marketing de impacto y psicología de ventas de alto CTR.
   
-  Misión: Generar un copy y una identidad visual que conecte PROFUNDAMENTE con el avatar del cliente ideal.
-  ${(style === 'auto' || isVolume) ? 'ESTILO LIBRE: Tienes total libertad creativa para elegir el estilo visual más impactante y relevante para este nicho. Ignora estilos predefinidos y crea algo único.' : `ESTILO SOLICITADO: ${style}.`}
+  ## BRIEF CREATIVO
+  El usuario ha proporcionado una IDEA/CONCEPTO como punto de partida. Tu trabajo es INTERPRETARLA y TRANSFORMARLA en un copy poderoso.
+  NO copies el texto del usuario literalmente. Úsalo como inspiración para crear algo ORIGINAL, POTENTE y que conecte EMOCIONALMENTE.
   
-  CONTEXTO OBLIGATORIO DE MARCA (USA ESTO PARA TODO):
-  - Nombre de Marca: ${brandContext.name}
-  - Sector/Nicho: ${brandContext.niche}
-  - Avatar de Cliente (Público): ${brandContext.targetAudience}
-  - Personalidad/Tono: ${brandContext.tone}
+  ## CONTEXTO DE MARCA (OBLIGATORIO - PERSONALIZA TODO A ESTO):
+  - Nombre de Marca: ${brandContext.name || '(sin nombre)'}
+  - Sector/Nicho: ${brandContext.niche || '(sin nicho)'}
+  - Público Objetivo: ${brandContext.targetAudience || '(audiencia general)'}
+  - Tono de Voz: ${brandContext.tone || 'Profesional y Persuasivo'}
   
-  INSTRUCCIONES CRÍTICAS:
-  1. Si ignoras el Nicho (${brandContext.niche}) o el Público (${brandContext.targetAudience}), la campaña SERÁ UN FRACASO.
-  2. Todo el copy debe hablar directamente a los dolores y deseos de ${brandContext.targetAudience}.
-  3. Las imágenes descritas en VisualPrompt deben mostrar escenarios donde ${brandContext.targetAudience} se sienta identificado en su vida diaria real.
+  ## REGLAS DE ORO DEL COPY:
+  1. Habla DIRECTAMENTE al ${brandContext.targetAudience || 'cliente'} usando SUS palabras, dolores y deseos reales.
+  2. El headline debe DETENER el scroll — usa gatillos mentales: curiosidad, dolor, promesa audaz, número específico.
+  3. El subheadline amplifica el headline con un beneficio concreto o prueba social.
+  4. NUNCA uses frases genéricas como "Mejora tu vida" o "El mejor servicio". Sé ESPECÍFICO al nicho: ${brandContext.niche || 'el sector'}.
+  5. El tono DEBE ser ${brandContext.tone || 'Profesional y Persuasivo'} en TODOS los slides.
+  6. La CTA debe crear urgencia o reducir fricción (ej: "Agenda tu llamada gratis", "Ver cómo funciona").
   
-  Idea Central: "${prompt}"
-
+  ## IDEA BASE DEL USUARIO (úsala como inspiración, no copiando literalmente):
+  "${prompt}"
+  
+  ${brandContext.tone ? `## TONO ESPECÍFICO: ${brandContext.tone} — que esto se SIENTA en cada palabra.` : ''}
   - HeadlineSize sugeridos: 40-70 para Single, 35-50 para Carrusel.
-  ${brandContext.tone ? `- TONO ESPECÍFICO: ${brandContext.tone}.` : ''}
   `;
 
   if (styleReference) {
@@ -168,21 +174,14 @@ export const generateAdCopy = async (
   const hasSlideMarkers = /slide \d+/i.test(prompt) || /\[slide \d+\]/i.test(prompt);
 
   if (type === 'angles-batch') {
-    sysInstruction += `\nTarea: Generar EXACTAMENTE 6 variaciones visuales de ALTO IMPACTO (Ángulos: Dolor, Deseo, Romper Objeción, Lógica, Urgencia, Creativo). Ignora cualquier estructura de slides del usuario, enfócate en los 6 ángulos. Output JSON.`;
+    sysInstruction += `\nTarea: Generar EXACTAMENTE 6 variaciones visuales de ALTO IMPACTO (Ángulos: Dolor, Deseo, Romper Objeción, Lógica, Urgencia, Creativo). Cada una con un ángulo completamente diferente. Inspírate en: "${prompt}". Output JSON.`;
   } else if (type === 'single-image') {
-    sysInstruction += `\nTarea: Generar EXACTAMENTE 1 sola imagen publicitaria de impacto. Ignora cualquier estructura de slides múltiple, concentra todo en 1 slide. Output JSON.`;
+    sysInstruction += `\nTarea: Generar EXACTAMENTE 1 sola imagen publicitaria. El array 'slides' debe tener SOLO 1 elemento. Output JSON.`;
   } else {
-    if (hasSlideMarkers) {
-      sysInstruction += `\nTAREA CRÍTICA: Se ha detectado una estructura de SLIDES en la Idea Central. 
-      - DEBES seguir el número exacto de slides indicados (ej: si hay Slide 1, 2 y 3, genera solo 3 slides).
-      - DEBES usar el texto proporcionado para cada slide PALABRA POR PALABRA como Headline. NO agregues ni quites nada.
-      - Crea un VisualPrompt que acompañe perfectamente a ese texto específico.`;
-    } else {
-      sysInstruction += `\nTarea: Crear carrusel de EXACTAMENTE 6 slides con narrativa continua. Output JSON.`;
-    }
+    sysInstruction += `\nTarea: Crear un carrusel de EXACTAMENTE ${targetSlides} slides con narrativa continua (hook→problema→solución→beneficio→prueba→CTA). Output JSON con ${targetSlides} items en el array 'slides'.`;
   }
 
-  sysInstruction += `\n\nREGLA DE ORO DE TEXTO: Si la Idea Central parece ser un copy terminado o contiene instrucciones de texto específicas, tu prioridad es la FIDELIDAD. No cambies el mensaje del usuario. Úsalo como headline principal.`;
+  sysInstruction += `\n\nIMPORTANTE: El campo 'slides' del JSON debe tener EXACTAMENTE ${targetSlides} elemento(s). Ni más, ni menos.`;
 
   const contentParts: any[] = [];
   if (styleReference) {

@@ -29,6 +29,7 @@ const App: React.FC = () => {
     const [intent, setIntent] = useState<ContentIntent>('paid-ads');
     const [style, setStyle] = useState<VisualStyle>('auto');
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
+    const [slideCount, setSlideCount] = useState<number>(6); // number of slides/images to generate
 
     const [status, setStatus] = useState<GenerationStatus>('idle');
     const [project, setProject] = useState<AdProject | null>(null);
@@ -207,8 +208,12 @@ const App: React.FC = () => {
             const copyResult = await generateAdCopy(
                 prompt, genMode, intent, style, brandContext,
                 designReference || undefined, knowledgeBase || undefined, textMode,
-                refImage || undefined
+                refImage || undefined, slideCount
             );
+
+            // Enforce slide count limit (critical for single-image bug fix)
+            const maxSlides = genMode === 'single-image' ? 1 : (genMode === 'angles-batch' ? 6 : slideCount);
+            const rawSlides = (copyResult.slides || []).slice(0, maxSlides);
 
             const newProject: AdProject = {
                 id: Math.random().toString(36).substr(2, 9),
@@ -225,7 +230,7 @@ const App: React.FC = () => {
                 primaryColor: (useAiDesign && copyResult.designTheme?.primaryColor) || '#050505',
                 accentColor: (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent,
                 accentGradient: `linear-gradient(to right, ${(useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent}, ${(useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent}dd)`,
-                slides: (copyResult.slides || []).map((s: any, idx: number) => {
+                slides: rawSlides.map((s: any, idx: number) => {
                     let defaultY = 50;
                     if (s.layout === 'bottom-heavy') defaultY = 75;
                     if (s.layout === 'top-heavy') defaultY = 25;
@@ -765,19 +770,58 @@ const App: React.FC = () => {
                                     Tipo de Contenido
                                 </label>
                                 <div className="grid grid-cols-3 gap-2 bg-neutral-900/50 p-1.5 rounded-2xl border border-white/5">
-                                    <button onClick={() => setGenMode('single-image')} className={`py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${genMode === 'single-image' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}>
+                                    <button onClick={() => { setGenMode('single-image'); setSlideCount(1); }} className={`py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${genMode === 'single-image' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}>
                                         <ImageIcon className="w-4 h-4" />
                                         SINGLE
                                     </button>
-                                    <button onClick={() => setGenMode('carousel')} className={`py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${genMode === 'carousel' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}>
+                                    <button onClick={() => { setGenMode('carousel'); setSlideCount(6); }} className={`py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${genMode === 'carousel' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}>
                                         <Copy className="w-4 h-4" />
                                         CARRUSEL
                                     </button>
-                                    <button onClick={() => setGenMode('angles-batch')} className={`py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${genMode === 'angles-batch' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}>
+                                    <button onClick={() => { setGenMode('angles-batch'); setSlideCount(6); }} className={`py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${genMode === 'angles-batch' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}>
                                         <Grid className="w-4 h-4" />
                                         VOLUMEN
                                     </button>
                                 </div>
+                                {/* Slide Count Selector */}
+                                {genMode !== 'single-image' && (
+                                    <div className="mt-3 space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
+                                            {genMode === 'carousel' ? `Cantidad de Slides: ${slideCount}` : `Variaciones: ${slideCount}`}
+                                        </label>
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                onClick={() => setSlideCount(prev => Math.max(genMode === 'angles-batch' ? 3 : 2, prev - 1))}
+                                                className="w-8 h-8 rounded-lg border border-white/10 bg-neutral-800/50 flex items-center justify-center text-neutral-300 hover:bg-neutral-700 transition-all"
+                                            >
+                                                <Minus className="w-3 h-3" />
+                                            </button>
+                                            <div className="flex-1 flex gap-1">
+                                                {(genMode === 'carousel'
+                                                    ? [2, 3, 4, 5, 6, 8, 10]
+                                                    : [3, 4, 5, 6]
+                                                ).map(n => (
+                                                    <button
+                                                        key={n}
+                                                        onClick={() => setSlideCount(n)}
+                                                        className={`flex-1 py-1.5 rounded-lg text-[11px] font-black transition-all ${slideCount === n
+                                                                ? 'bg-yellow-500 text-black'
+                                                                : 'bg-neutral-800/50 text-neutral-500 hover:text-white hover:bg-neutral-700'
+                                                            }`}
+                                                    >
+                                                        {n}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <button
+                                                onClick={() => setSlideCount(prev => Math.min(genMode === 'angles-batch' ? 6 : 10, prev + 1))}
+                                                className="w-8 h-8 rounded-lg border border-white/10 bg-neutral-800/50 flex items-center justify-center text-neutral-300 hover:bg-neutral-700 transition-all"
+                                            >
+                                                <Plus className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
