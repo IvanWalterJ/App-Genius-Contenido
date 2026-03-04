@@ -1,6 +1,4 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 :root {
   --primary: #0a0a0a;
@@ -106,8 +104,19 @@ body {
   scrollbar-width: none;
 }
 
-@layer base {
-  body {
-    @apply bg-[#0a0a0a] text-white;
-  }
+/* Base styles in TW4 are handled differently but this is fine for custom overrides */
+@theme {
+  --font-brand: "Montserrat", sans-serif;
+  --font-display: "Bebas Neue", cursive;
+  --font-serif: "Playfair Display", serif;
+  --font-hand: "Patrick Hand", cursive;
+  --font-modern: "Poppins", sans-serif;
+  --font-oswald: "Oswald", sans-serif;
+  --font-merriweather: "Merriweather", serif;
+  --font-lobster: "Lobster", cursive;
+  --font-abril: "Abril Fatface", cursive;
+  --font-lato: "Lato", sans-serif;
+  --font-raleway: "Raleway", sans-serif;
+
+  --color-brand-yellow: #facc15;
 }
