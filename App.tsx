@@ -17,10 +17,10 @@ import {
     FileText, Check, Type as TypeIcon, Move, Maximize2, Minimize2,
     Bold, AlignLeft, AlignCenter, AlignRight, Sliders, BoxSelect,
     PaintBucket, Copy, Grid, Lock, Key, XCircle, AtSign, Highlighter,
-    Minus, Plus, History, Trash2, Calendar, Video, Play, User, X
+    Minus, Plus, History, Trash2, Calendar, Video, Play, User, X, Briefcase, FolderHeart
 } from 'lucide-react';
 
-const QUICK_COLORS = ['#ffffff', '#000000', '#facc15', '#f87171', '#60a5fa', '#a78bfa', '#4ade80'];
+const QUICK_COLORS = ['#ffffff', '#000000', '#06b6d4', '#8b5cf6', '#d946ef', '#f43f5e', '#3b82f6'];
 
 const App: React.FC = () => {
     const [hasKey, setHasKey] = useState(false);
@@ -54,8 +54,8 @@ const App: React.FC = () => {
     // Editor Tabs
     const [editorTab, setEditorTab] = useState<'text' | 'image' | 'design' | 'video'>('text');
 
-    // Sidebar Mode (Create vs History vs Winners)
-    const [sidebarMode, setSidebarMode] = useState<'create' | 'history' | 'winners'>('create');
+    // Sidebar Mode (Create vs History vs Winners vs Assets vs Brands)
+    const [sidebarMode, setSidebarMode] = useState<'create' | 'history' | 'winners' | 'assets' | 'brands'>('create');
     const [history, setHistory] = useState<AdProject[]>([]);
 
     // Hover preview state
@@ -507,11 +507,11 @@ const App: React.FC = () => {
 
     if (!hasKey) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-black text-white p-4">
+            <div className="min-h-screen flex items-center justify-center bg-deep-bg text-white p-4">
                 <div className="max-w-md w-full text-center space-y-8 animate-in fade-in zoom-in duration-500">
                     <div className="flex justify-center">
-                        <div className="w-20 h-20 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-3xl flex items-center justify-center shadow-[0_0_50px_rgba(245,158,11,0.3)]">
-                            <Crown className="w-10 h-10 text-black fill-black" />
+                        <div className="w-20 h-20 bg-gradient-to-br from-violet-600 to-cyan-500 rounded-3xl flex items-center justify-center shadow-[0_0_50px_rgba(139,92,246,0.3)]">
+                            <Sparkles className="w-10 h-10 text-white" />
                         </div>
                     </div>
 
@@ -533,41 +533,53 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen flex flex-col md:flex-row bg-[#050505] text-white selection:bg-blue-500/30">
+        <div className="min-h-screen flex flex-col md:flex-row bg-deep-bg text-white selection:bg-violet-500/30 font-modern">
 
             {/* Sidebar */}
-            <aside className="w-full md:w-[450px] border-r border-white/5 p-6 md:p-8 flex flex-col gap-8 bg-neutral-900/40 backdrop-blur-3xl h-auto md:h-screen md:sticky md:top-0 overflow-y-auto no-scrollbar z-50">
+            <aside className="w-full md:w-[450px] border-r border-white/5 p-6 md:p-8 flex flex-col gap-8 bg-deep-surface/40 backdrop-blur-3xl h-auto md:h-screen md:sticky md:top-0 overflow-y-auto no-scrollbar z-50">
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-amber-600/20">
-                            <Crown className="w-8 h-8 text-black fill-black" />
+                        <div className="w-14 h-14 bg-gradient-to-br from-violet-600 to-cyan-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-violet-600/20">
+                            <Sparkles className="w-7 h-7 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-black uppercase tracking-tighter leading-none text-white">AdGenius <span className="text-yellow-500">PRO V3</span></h1>
-                            <p className="text-xs text-neutral-400 font-bold tracking-widest mt-1">AI CREATIVE DIRECTOR</p>
+                            <h1 className="text-2xl font-black uppercase tracking-tighter leading-none text-white font-brand">NovaAds <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">AI</span></h1>
+                            <p className="text-xs text-neutral-400 font-bold tracking-widest mt-1">CREATIVE STUDIO PRO</p>
                         </div>
                     </div>
                 </div>
 
-                {/* Sidebar Tabs */}
-                <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/5">
+                {/* Sidebar Tabs - iOS Segment Control Style */}
+                <div className="flex bg-black/50 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md">
                     <button
                         onClick={() => setSidebarMode('create')}
-                        className={`flex-1 py-3 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 transition-all ${sidebarMode === 'create' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-white'}`}
+                        className={`flex-1 py-2 rounded-xl text-[10px] font-black flex flex-col items-center justify-center gap-1 transition-all ${sidebarMode === 'create' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-neutral-500 hover:text-white'}`}
                     >
-                        <Sparkles className="w-3.5 h-3.5" /> CREAR
+                        <Sparkles className="w-4 h-4" /> CREAR
+                    </button>
+                    <button
+                        onClick={() => setSidebarMode('brands')}
+                        className={`flex-1 py-2 rounded-xl text-[10px] font-black flex flex-col items-center justify-center gap-1 transition-all ${sidebarMode === 'brands' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-neutral-500 hover:text-white'}`}
+                    >
+                        <Settings className="w-4 h-4" /> MARCAS
+                    </button>
+                    <button
+                        onClick={() => setSidebarMode('assets')}
+                        className={`flex-1 py-2 rounded-xl text-[10px] font-black flex flex-col items-center justify-center gap-1 transition-all ${sidebarMode === 'assets' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-neutral-500 hover:text-white'}`}
+                    >
+                        <Layers className="w-4 h-4" /> ACTIVOS
                     </button>
                     <button
                         onClick={() => setSidebarMode('history')}
-                        className={`flex-1 py-3 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 transition-all ${sidebarMode === 'history' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-white'}`}
+                        className={`flex-1 py-2 rounded-xl text-[10px] font-black flex flex-col items-center justify-center gap-1 transition-all ${sidebarMode === 'history' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-neutral-500 hover:text-white'}`}
                     >
-                        <History className="w-3.5 h-3.5" /> HISTORIAL
+                        <History className="w-4 h-4" /> HISTORIA
                     </button>
                     <button
                         onClick={() => setSidebarMode('winners')}
-                        className={`flex-1 py-3 rounded-xl text-[10px] font-black flex items-center justify-center gap-2 transition-all ${sidebarMode === 'winners' ? 'bg-amber-500 text-black shadow-lg' : 'text-neutral-500 hover:text-white'}`}
+                        className={`flex-1 py-2 rounded-xl text-[10px] font-black flex flex-col items-center justify-center gap-1 transition-all ${sidebarMode === 'winners' ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg border border-transparent' : 'text-neutral-500 hover:text-white'}`}
                     >
-                        <Crown className="w-3.5 h-3.5" /> WINNERS
+                        <Crown className="w-4 h-4" /> WINNERS
                     </button>
                 </div>
 
@@ -575,10 +587,10 @@ const App: React.FC = () => {
                     <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
 
                         {/* Brand Context Section */}
-                        <div className="bg-white/5 p-5 rounded-3xl border border-white/10 space-y-5">
+                        <div className="bg-white/[0.02] p-5 rounded-3xl border border-white/5 space-y-5 backdrop-blur-sm">
                             <div className="flex items-center gap-3 mb-1">
-                                <div className="w-8 h-8 bg-yellow-500/20 rounded-xl flex items-center justify-center">
-                                    <Target className="w-4 h-4 text-yellow-500" />
+                                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-gradient-to-br from-violet-500/20 to-cyan-500/20 border border-white/5">
+                                    <Target className="w-4 h-4 text-cyan-400" />
                                 </div>
                                 <label className="text-xs font-black uppercase tracking-widest text-neutral-200">Contexto de Marca</label>
                             </div>
@@ -591,7 +603,7 @@ const App: React.FC = () => {
                                         value={brandContext.name}
                                         onChange={(e) => setBrandContext({ ...brandContext, name: e.target.value })}
                                         placeholder="Ej: Mi Agencia, Nike, Apple..."
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-1 ring-yellow-500/50 outline-none transition-all placeholder:text-neutral-700"
+                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all placeholder:text-neutral-700"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -601,7 +613,7 @@ const App: React.FC = () => {
                                         value={brandContext.niche}
                                         onChange={(e) => setBrandContext({ ...brandContext, niche: e.target.value })}
                                         placeholder="Ej: Fitness, Real Estate, SaaS..."
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-1 ring-yellow-500/50 outline-none transition-all placeholder:text-neutral-700"
+                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all placeholder:text-neutral-700"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -611,7 +623,7 @@ const App: React.FC = () => {
                                         value={brandContext.targetAudience}
                                         onChange={(e) => setBrandContext({ ...brandContext, targetAudience: e.target.value })}
                                         placeholder="Ej: Emprendedores de 25-40 años..."
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-1 ring-yellow-500/50 outline-none transition-all placeholder:text-neutral-700"
+                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all placeholder:text-neutral-700"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -619,7 +631,7 @@ const App: React.FC = () => {
                                     <select
                                         value={brandContext.tone}
                                         onChange={(e) => setBrandContext({ ...brandContext, tone: e.target.value })}
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:ring-1 ring-yellow-500/50 outline-none transition-all text-neutral-300"
+                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all text-neutral-300"
                                     >
                                         <option value="Profesional y Persuasivo">👔 Profesional y Persuasivo</option>
                                         <option value="Disruptivo y Agresivo">⚡ Disruptivo y Agresivo</option>
@@ -643,7 +655,7 @@ const App: React.FC = () => {
                                 <button
                                     onClick={handleEnhancePrompt}
                                     disabled={isEnhancingPrompt || !prompt}
-                                    className="text-xs flex items-center gap-2 text-yellow-500 hover:text-yellow-400 transition-colors font-bold uppercase tracking-wider px-3 py-1 rounded-full hover:bg-yellow-500/10"
+                                    className="text-xs flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors font-bold uppercase tracking-wider px-3 py-1 rounded-full hover:bg-cyan-500/10"
                                 >
                                     {isEnhancingPrompt ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
                                     {isEnhancingPrompt ? "Optimizar" : "Mejorar"}
@@ -653,7 +665,7 @@ const App: React.FC = () => {
                                 value={prompt}
                                 onChange={(e) => setPrompt(e.target.value)}
                                 placeholder="Escribe tu idea o pega directamente el texto que quieres que aparezca en la imagen (ej: '5 Tips para vender más')..."
-                                className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-5 text-base focus:ring-2 ring-yellow-500/50 outline-none transition-all resize-none placeholder:text-neutral-600 font-medium leading-relaxed"
+                                className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-5 text-base focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all resize-none placeholder:text-neutral-600 font-medium leading-relaxed"
                             />
                         </div>
 
@@ -661,13 +673,13 @@ const App: React.FC = () => {
                             <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Referencia de Personaje</label>
                             <div
                                 onClick={() => fileInputRef.current?.click()}
-                                className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all group ${refImage ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-neutral-800/30 border-white/10 hover:bg-neutral-800/50'}`}
+                                className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all group ${refImage ? 'bg-violet-500/10 border-violet-500/50' : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.04]'}`}
                             >
-                                <div className={`w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center border border-white/10 ${refImage ? 'bg-yellow-500/20' : 'bg-neutral-800 text-neutral-500'}`}>
+                                <div className={`w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center border border-white/10 ${refImage ? 'bg-violet-500/20' : 'bg-black/50 text-neutral-500'}`}>
                                     {refImage ? <img src={refImage} className="w-full h-full object-cover" alt="Ref" /> : <User className="w-5 h-5" />}
                                 </div>
                                 <div className="flex-1 overflow-hidden">
-                                    <p className={`text-sm font-bold truncate ${refImage ? 'text-yellow-200' : 'text-neutral-300 group-hover:text-white'}`}>
+                                    <p className={`text-sm font-bold truncate ${refImage ? 'text-violet-300' : 'text-neutral-300 group-hover:text-white'}`}>
                                         {refImage ? "Imagen Cargada" : "Subir Foto (Tu Cara/Modelo)"}
                                     </p>
                                     <p className="text-[10px] text-neutral-500 mt-0.5 uppercase font-black tracking-tighter">La IA usará este rostro para los visuales</p>
@@ -694,13 +706,13 @@ const App: React.FC = () => {
                             <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Referencia de Estilo Visual</label>
                             <div
                                 onClick={() => designInputRef.current?.click()}
-                                className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all group ${designReference ? 'bg-indigo-500/10 border-indigo-500/50' : 'bg-neutral-800/30 border-white/10 hover:bg-neutral-800/50'}`}
+                                className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all group ${designReference ? 'bg-cyan-500/10 border-cyan-500/50' : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.04]'}`}
                             >
-                                <div className={`w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center border border-white/10 ${designReference ? 'bg-indigo-500/20' : 'bg-neutral-800 text-neutral-500'}`}>
+                                <div className={`w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center border border-white/10 ${designReference ? 'bg-cyan-500/20' : 'bg-black/50 text-neutral-500'}`}>
                                     {designReference ? <img src={designReference} className="w-full h-full object-cover" alt="Design Ref" /> : <Palette className="w-5 h-5" />}
                                 </div>
                                 <div className="flex-1 overflow-hidden">
-                                    <p className={`text-sm font-bold truncate ${designReference ? 'text-indigo-200' : 'text-neutral-300 group-hover:text-white'}`}>
+                                    <p className={`text-sm font-bold truncate ${designReference ? 'text-cyan-300' : 'text-neutral-300 group-hover:text-white'}`}>
                                         {designReference ? "Estilo Cargado" : "Subir Referencia (Branding/Diseño)"}
                                     </p>
                                     <p className="text-[10px] text-neutral-500 mt-0.5 uppercase font-black tracking-tighter">La IA imitará la tipografía y colores de esta imagen</p>
@@ -727,13 +739,13 @@ const App: React.FC = () => {
                             <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Base de Conocimiento</label>
                             <div
                                 onClick={() => docInputRef.current?.click()}
-                                className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all group ${knowledgeBase ? 'bg-blue-500/10 border-blue-500/50' : 'bg-neutral-800/30 border-white/10 hover:bg-neutral-800/50'}`}
+                                className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all group ${knowledgeBase ? 'bg-violet-500/10 border-violet-500/50' : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.04]'}`}
                             >
-                                <div className={`p-3 rounded-lg ${knowledgeBase ? 'bg-blue-500/20' : 'bg-neutral-800'}`}>
-                                    {knowledgeBase ? <Check className="w-5 h-5 text-blue-400" /> : <FileText className="w-5 h-5 text-neutral-400" />}
+                                <div className={`p-3 rounded-lg ${knowledgeBase ? 'bg-violet-500/20' : 'bg-black/50'}`}>
+                                    {knowledgeBase ? <Check className="w-5 h-5 text-violet-400" /> : <FileText className="w-5 h-5 text-neutral-400" />}
                                 </div>
                                 <div className="flex-1 overflow-hidden">
-                                    <p className={`text-sm font-bold truncate ${knowledgeBase ? 'text-blue-200' : 'text-neutral-300 group-hover:text-white'}`}>
+                                    <p className={`text-sm font-bold truncate ${knowledgeBase ? 'text-violet-300' : 'text-neutral-300 group-hover:text-white'}`}>
                                         {kbFileName || "Subir Documento (PDF/TXT)"}
                                     </p>
                                     <p className="text-xs text-neutral-500 mt-0.5">Contexto Extra para la IA.</p>
@@ -805,8 +817,8 @@ const App: React.FC = () => {
                                                         key={n}
                                                         onClick={() => setSlideCount(n)}
                                                         className={`flex-1 py-1.5 rounded-lg text-[11px] font-black transition-all ${slideCount === n
-                                                                ? 'bg-yellow-500 text-black'
-                                                                : 'bg-neutral-800/50 text-neutral-500 hover:text-white hover:bg-neutral-700'
+                                                            ? 'bg-yellow-500 text-black'
+                                                            : 'bg-neutral-800/50 text-neutral-500 hover:text-white hover:bg-neutral-700'
                                                             }`}
                                                     >
                                                         {n}
@@ -892,9 +904,12 @@ const App: React.FC = () => {
                         <button
                             onClick={handleGenerate}
                             disabled={status !== 'idle' && status !== 'done' && status !== 'error'}
-                            className="w-full py-5 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 disabled:opacity-50 rounded-2xl font-black text-black text-base tracking-widest flex items-center justify-center gap-3 transition-all shadow-2xl shadow-amber-600/20 group uppercase transform hover:scale-[1.01] active:scale-[0.99]"
+                            className="w-full py-5 bg-gradient-to-r from-violet-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 disabled:opacity-50 rounded-2xl font-black text-white text-base tracking-widest flex items-center justify-center gap-3 transition-all shadow-2xl shadow-violet-500/20 group uppercase transform hover:scale-[1.01] active:scale-[0.99] border border-white/10 overflow-hidden relative"
                         >
-                            {status === 'idle' || status === 'done' || status === 'error' ? 'GENERAR CAMPAÑA' : <><Loader2 className="w-6 h-6 animate-spin" /> PROCESANDO...</>}
+                            <div className="absolute inset-0 bg-white/10 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
+                            <div className="relative z-10 flex items-center gap-3">
+                                {status === 'idle' || status === 'done' || status === 'error' ? 'GENERAR CAMPAÑA' : <><Loader2 className="w-6 h-6 animate-spin" /> PROCESANDO...</>}
+                            </div>
                         </button>
                     </div>
                 ) : sidebarMode === 'history' ? (
@@ -948,10 +963,10 @@ const App: React.FC = () => {
                             </div>
                         )}
                     </div>
-                ) : (
+                ) : sidebarMode === 'winners' ? (
                     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 h-full overflow-y-auto no-scrollbar pb-10">
                         {history.flatMap(p => (p.slides || []).filter(s => s.isWinner).map(s => ({ ...s, projectId: p.id, projectTitle: p.title }))).length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-64 text-center p-8 border border-dashed border-white/10 rounded-2xl">
+                            <div className="flex flex-col items-center justify-center h-64 text-center p-8 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
                                 <Crown className="w-8 h-8 text-neutral-600 mb-4" />
                                 <p className="text-sm font-bold text-neutral-500">No hay Winners aún</p>
                                 <p className="text-xs text-neutral-600 mt-1">Marca tus mejores diseños con la corona para guardarlos aquí.</p>
@@ -959,11 +974,11 @@ const App: React.FC = () => {
                         ) : (
                             <div className="grid grid-cols-1 gap-4">
                                 {history.flatMap(p => (p.slides || []).filter(s => s.isWinner).map(s => ({ ...s, projectId: p.id, projectTitle: p.title, visualStyle: p.visualStyle, aspectRatio: p.aspectRatio, fullProject: p }))).map((s, idx) => (
-                                    <div key={`${s.projectId}-${idx}`} onClick={() => loadProject(s.fullProject)} className="group relative bg-neutral-900/50 border border-white/5 p-3 rounded-2xl hover:bg-neutral-800 transition-all overflow-hidden cursor-pointer">
+                                    <div key={`${s.projectId}-${idx}`} onClick={() => loadProject(s.fullProject)} className="group relative bg-white/[0.03] border border-white/5 p-3 rounded-2xl hover:bg-white/[0.06] transition-all overflow-hidden cursor-pointer backdrop-blur-md">
                                         <div className="aspect-square w-full rounded-xl overflow-hidden mb-3 bg-black relative">
-                                            {s.backgroundImageUrl ? <img src={s.backgroundImageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full bg-neutral-800 flex items-center justify-center"><ImageIcon className="w-6 h-6 text-neutral-600" /></div>}
-                                            <div className="absolute top-2 right-2 p-1.5 bg-amber-500 rounded-lg shadow-lg">
-                                                <Crown className="w-3 h-3 text-black fill-black" />
+                                            {s.backgroundImageUrl ? <img src={s.backgroundImageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full bg-deep-surface flex items-center justify-center"><ImageIcon className="w-6 h-6 text-neutral-600" /></div>}
+                                            <div className="absolute top-2 right-2 p-1.5 bg-gradient-to-br from-violet-600 to-cyan-500 rounded-lg shadow-lg">
+                                                <Crown className="w-3 h-3 text-white fill-white" />
                                             </div>
                                         </div>
                                         <h4 className="text-xs font-bold text-white line-clamp-1">{s.headline.replace(/\*/g, '')}</h4>
@@ -973,12 +988,32 @@ const App: React.FC = () => {
                             </div>
                         )}
                     </div>
-                )}
+                ) : sidebarMode === 'brands' ? (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 h-full overflow-y-auto no-scrollbar pb-10">
+                        <div className="flex flex-col items-center justify-center h-64 text-center p-8 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+                            <div className="w-12 h-12 bg-violet-500/20 rounded-xl flex items-center justify-center mb-4">
+                                <Briefcase className="w-6 h-6 text-violet-400" />
+                            </div>
+                            <p className="text-sm font-bold text-neutral-300">Próximamente: Brand Kits</p>
+                            <p className="text-xs text-neutral-500 mt-2 leading-relaxed">Guarda la paleta, tipografías y tono de voz de múltiples marcas para cambiar entre ellas fácilmente.</p>
+                        </div>
+                    </div>
+                ) : sidebarMode === 'assets' ? (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 h-full overflow-y-auto no-scrollbar pb-10">
+                        <div className="flex flex-col items-center justify-center h-64 text-center p-8 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
+                            <div className="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center mb-4">
+                                <FolderHeart className="w-6 h-6 text-cyan-400" />
+                            </div>
+                            <p className="text-sm font-bold text-neutral-300">Próximamente: Asset Library</p>
+                            <p className="text-xs text-neutral-500 mt-2 leading-relaxed">Sube logos, patrones y recursos visuales para integrarlos libremente en tus campañas.</p>
+                        </div>
+                    </div>
+                ) : null}
             </aside>
 
             {/* Area de Visualización */}
-            <main className="flex-1 overflow-y-auto bg-black flex flex-col items-center p-4 md:p-12 gap-6 md:gap-10 relative">
-                <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-neutral-900/50 to-black pointer-events-none" />
+            <main className="flex-1 overflow-y-auto bg-deep-bg flex flex-col items-center p-4 md:p-12 gap-6 md:gap-10 relative">
+                <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-violet-900/20 via-cyan-900/10 to-transparent pointer-events-none" />
 
                 {!project ? (
                     <div className="flex-1 flex flex-col items-center justify-center max-w-4xl text-center space-y-12 animate-in fade-in zoom-in duration-700 z-10 w-full">
@@ -986,22 +1021,23 @@ const App: React.FC = () => {
                         {/* Collage Hero */}
                         <div className="relative w-full max-w-2xl h-[400px] perspective-1000">
                             {/* Background Glow */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/20 blur-[120px] rounded-full pointer-events-none" />
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-600/10 blur-[150px] rounded-full pointer-events-none" />
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/4 -translate-y-1/3 w-[400px] h-[400px] bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none" />
 
                             {/* Image Grid */}
                             <div className="grid grid-cols-3 gap-4 transform rotate-x-12 scale-90 hover:scale-100 transition-transform duration-700 ease-out">
                                 {[
-                                    "https://picsum.photos/seed/ad1/300/400",
-                                    "https://picsum.photos/seed/ad2/300/400",
-                                    "https://picsum.photos/seed/ad3/300/400",
-                                    "https://picsum.photos/seed/ad4/300/400",
-                                    "https://picsum.photos/seed/ad5/300/400",
-                                    "https://picsum.photos/seed/ad6/300/400"
+                                    "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop",
+                                    "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2000&auto=format&fit=crop",
+                                    "https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2000&auto=format&fit=crop",
+                                    "https://images.unsplash.com/photo-1618005192384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop",
+                                    "https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?q=80&w=2564&auto=format&fit=crop",
+                                    "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2000&auto=format&fit=crop"
                                 ].map((src, i) => (
-                                    <div key={i} className={`relative rounded-xl overflow-hidden shadow-2xl border border-white/10 group ${i % 2 === 0 ? 'translate-y-8' : '-translate-y-8'}`}>
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10" />
-                                        <img src={src} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
-                                        <div className="absolute bottom-3 left-3 z-20">
+                                    <div key={i} className={`relative rounded-xl overflow-hidden shadow-2xl border border-white/5 group ${i % 2 === 0 ? 'translate-y-8' : '-translate-y-8'} ring-1 ring-white/10 p-1 bg-white/[0.02]`}>
+                                        <div className="absolute inset-0 bg-gradient-to-t from-deep-bg/90 via-transparent to-transparent z-10 rounded-lg pointer-events-none" />
+                                        <img src={src} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 rounded-lg opacity-80 group-hover:opacity-100" referrerPolicy="no-referrer" />
+                                        <div className="absolute bottom-4 left-4 z-20">
                                             <div className="h-1 w-8 bg-white/50 rounded-full mb-2" />
                                             <div className="h-1 w-16 bg-white/30 rounded-full" />
                                         </div>
@@ -1011,12 +1047,12 @@ const App: React.FC = () => {
                         </div>
 
                         <div className="space-y-6 max-w-xl mx-auto relative z-20">
-                            <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white leading-[0.9]">
-                                Generador de <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400 font-serif italic font-normal">Impacto</span>
+                            <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white leading-[0.9] font-brand">
+                                THE FUTURE OF <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400 font-serif italic font-normal text-5xl md:text-7xl">Advertising</span>
                             </h2>
-                            <p className="text-neutral-400 text-xl leading-relaxed font-medium">
-                                Crea campañas publicitarias completas en segundos. <br />
-                                <span className="text-white font-bold">Copywriting persuasivo + Diseño visual de alto nivel.</span>
+                            <p className="text-neutral-400 text-lg leading-relaxed font-medium">
+                                Create massive, premium ad variations with zero effort. <br />
+                                <span className="text-white font-bold">Copywriting + Design engineered for scale.</span>
                             </p>
                         </div>
                     </div>
@@ -1121,13 +1157,13 @@ const App: React.FC = () => {
                                     {/* TEXT EDITOR TAB (Simplified for Baked Mode) */}
                                     {editorTab === 'text' && (
                                         <div className="space-y-5 animate-in fade-in duration-300">
-                                            <div className="p-6 text-center border-2 border-dashed border-yellow-500/30 rounded-3xl bg-yellow-500/5 flex flex-col items-center gap-4">
-                                                <div className="p-4 bg-yellow-500/10 rounded-full">
-                                                    <Sparkles className="w-8 h-8 text-yellow-400" />
+                                            <div className="p-6 text-center border-2 border-dashed border-violet-500/30 rounded-3xl bg-violet-500/5 flex flex-col items-center gap-4">
+                                                <div className="p-4 bg-violet-500/10 rounded-full">
+                                                    <Sparkles className="w-8 h-8 text-violet-400" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm text-yellow-200 font-bold uppercase tracking-widest">IA: Nano Banana 2</p>
-                                                    <p className="text-xs text-yellow-400/70 mt-2 max-w-xs mx-auto leading-relaxed">
+                                                    <p className="text-sm text-violet-200 font-bold uppercase tracking-widest">IA: Nano Banana 2</p>
+                                                    <p className="text-xs text-violet-400/70 mt-2 max-w-xs mx-auto leading-relaxed">
                                                         El diseño y el texto están fusionados por la IA para un resultado ultra profesional.
                                                         Para cambiar el copy, edita el texto abajo y pulsa <strong className="text-white">"NUEVA IMAGEN"</strong>.
                                                     </p>
@@ -1191,13 +1227,13 @@ const App: React.FC = () => {
                                             </div>
 
                                             {/* MAGIC EDIT SECTION */}
-                                            <div className="p-5 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl space-y-4 shadow-lg shadow-indigo-500/5">
+                                            <div className="p-5 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-2xl space-y-4 shadow-lg shadow-cyan-500/5">
                                                 <div className="flex items-center gap-3 mb-1">
-                                                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-                                                        <Sparkles className="w-4 h-4 text-indigo-400" />
+                                                    <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                                                        <Sparkles className="w-4 h-4 text-cyan-400" />
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-indigo-400">AI Magic Edit</label>
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-cyan-400">AI Magic Edit</label>
                                                         <span className="text-[9px] text-neutral-500 font-bold">Edita con lenguaje natural</span>
                                                     </div>
                                                 </div>
@@ -1206,12 +1242,12 @@ const App: React.FC = () => {
                                                         value={editPrompt}
                                                         onChange={(e) => setEditPrompt(e.target.value)}
                                                         placeholder="Ej: 'Transforma esto en un estilo cyberpunk' o 'Añade un coche deportivo'..."
-                                                        className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-xs text-white focus:border-indigo-500/50 outline-none resize-none h-24 leading-relaxed"
+                                                        className="w-full bg-black/60 border border-white/10 rounded-xl p-3 text-xs text-white focus:border-cyan-500/50 outline-none resize-none h-24 leading-relaxed"
                                                     />
                                                     <button
                                                         onClick={handleEditImage}
                                                         disabled={isEditingImage || !editPrompt.trim() || !project.slides[activeSlideIdx].backgroundImageUrl}
-                                                        className="absolute bottom-3 right-3 p-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-400 disabled:opacity-50 transition-all shadow-xl hover:scale-110 active:scale-95"
+                                                        className="absolute bottom-3 right-3 p-3 bg-cyan-500 text-black rounded-xl hover:bg-cyan-400 disabled:opacity-50 transition-all shadow-xl hover:scale-110 active:scale-95"
                                                     >
                                                         {isEditingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                                                     </button>
@@ -1225,10 +1261,10 @@ const App: React.FC = () => {
                                     {/* VIDEO TAB */}
                                     {editorTab === 'video' && (
                                         <div className="space-y-6 animate-in fade-in duration-300 p-2">
-                                            <div className="p-6 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-3xl space-y-6">
+                                            <div className="p-6 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-3xl space-y-6">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-amber-500/20 rounded-xl flex items-center justify-center">
-                                                        <Video className="w-5 h-5 text-amber-500" />
+                                                    <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
+                                                        <Video className="w-5 h-5 text-violet-400" />
                                                     </div>
                                                     <div>
                                                         <h3 className="text-sm font-black uppercase tracking-widest text-white">Generar Video (Veo)</h3>
@@ -1242,18 +1278,18 @@ const App: React.FC = () => {
                                                         value={videoPrompt}
                                                         onChange={(e) => setVideoPrompt(e.target.value)}
                                                         placeholder="Ej: 'Una cámara lenta acercándose al producto con partículas de luz flotando'..."
-                                                        className="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-sm text-white focus:border-amber-500/50 outline-none resize-none h-32 leading-relaxed"
+                                                        className="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-sm text-white focus:border-violet-500/50 outline-none resize-none h-32 leading-relaxed"
                                                     />
                                                 </div>
 
                                                 {isVideoGenerating && (
                                                     <div className="space-y-3 p-4 bg-black/40 rounded-2xl border border-white/5 animate-pulse">
                                                         <div className="flex items-center gap-3">
-                                                            <Loader2 className="w-4 h-4 animate-spin text-amber-500" />
-                                                            <span className="text-xs font-bold text-amber-200">{videoProgress}</span>
+                                                            <Loader2 className="w-4 h-4 animate-spin text-violet-400" />
+                                                            <span className="text-xs font-bold text-violet-200">{videoProgress}</span>
                                                         </div>
                                                         <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-                                                            <div className="h-full bg-amber-500 w-1/2" />
+                                                            <div className="h-full bg-violet-500 w-1/2" />
                                                         </div>
                                                     </div>
                                                 )}

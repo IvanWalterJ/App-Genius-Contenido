@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #0a0a0a;
-  --accent: #facc15;
+  --primary: #030014;
+  --surface: #0a0521;
+  --accent: #8b5cf6;
+  --accent-cyan: #06b6d4;
 }
 
 body {
@@ -10,7 +12,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-family: 'Inter', sans-serif;
-  background-color: #0a0a0a;
+  background-color: var(--primary);
   color: #ffffff;
   overflow-x: hidden;
 }

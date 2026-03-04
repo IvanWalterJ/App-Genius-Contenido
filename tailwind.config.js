@@ -14,6 +14,10 @@ export default {
             },
             colors: {
                 'brand-yellow': '#facc15',
+                'deep-bg': '#030014',
+                'deep-surface': '#0a0521',
+                'accent-violet': '#8b5cf6',
+                'accent-cyan': '#06b6d4',
             }
         },
     },
