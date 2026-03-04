@@ -291,11 +291,11 @@ export const generateSlideImage = async (
     fullPrompt += ` MANDATORY: The person in this image must match the face, ethnicity, age, and features of the provided reference character. EXTREME CONSISTENCY with the person is required.`;
   }
 
+  // VERIFIED: Only model confirmed working for image generation via standard Gemini API
+  // gemini-2.0-flash-exp-image-generation is the ONLY verified name
+  // Do NOT change this without verifying the model name via ListModels first
   const imgModels = [
-    'models/gemini-3.1-flash-image', // Nano Banana 2 (Official Name)
-    'models/gemini-3.1-pro-image',   // Pro version
-    'models/imagen-3.0-generate-002',
-    'models/gemini-2.0-flash'        // Fallback with modality
+    'models/gemini-2.0-flash-exp-image-generation'
   ];
 
   for (const model of imgModels) {
@@ -303,9 +303,8 @@ export const generateSlideImage = async (
       console.log(`Image Generation: Trying ${model}...`);
 
       const configObj: any = {
-        // Some models require both TEXT and IMAGE or just Modalites
-        responseModalities: model.includes('gemini') ? ['TEXT', 'IMAGE'] : ['IMAGE'],
-        // Explicitly pass standard aspect ratios if provided
+        // This model requires TEXT+IMAGE modalities for output
+        responseModalities: ['TEXT', 'IMAGE'],
         aspectRatio: aspectRatio
       };
 
