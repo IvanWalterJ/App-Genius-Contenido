@@ -24,35 +24,35 @@ export const STYLE_CONFIGS: Record<VisualStyle, {
     preview: 'https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'cinematic-thriller': {
-    promptPrefix: 'Gritty cinematic portrait photography, high suspense thriller movie poster aesthetic, dramatic split lighting (Rembrandt or rim light), teal and orange color grading. Intense gaze, detailed facial textures, burning elements or mysterious background (like a detective board or dark alley), raw emotional realism. ',
+    promptPrefix: 'Gritty cinematic portrait photography, thriller movie poster aesthetic, dramatic split lighting. Bold warped elegant serif typography for main title, modern sans-serif subtitles, high contrast white text over dark areas, intricate typographic layout with varying font sizes, raw emotional realism. ',
     defaultOverlay: 0.6,
     name: 'Cinematic Thriller',
     desc: 'Retratos intensos y crudos con iluminación dramática. Ideal para romper el scroll con misterio y autoridad (Referencia Cansando).',
     preview: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'tech-agency': {
-    promptPrefix: 'High-end B2B tech workspace photography, glowing laptop screen, dark navy blue room, warm amber desk lamp light creating a cinematic teal and orange contrast, elegant professional studio lighting, sleek and modern advertising setup. ',
+    promptPrefix: 'High-end B2B tech workspace, glowing laptop, dark navy room, amber desk lamp. Extremely clean geometric sans-serif typography, large centered title with a single colored accent word, pill-shaped UI badges for subtitles, polished digital ad layout, sleek luxury tech branding. ',
     defaultOverlay: 0.6,
     name: 'Dark Tech Desk',
     desc: 'Entornos profesionales de noche, iluminados por pantallas y lámparas cálidas (Referencia Advertise Precision).',
     preview: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'mystic-neon': {
-    promptPrefix: 'Surreal dark 3D composition, intense deep violet and magenta lighting, glowing mystical elements floating in the air, highly detailed textures, heavy compositing advertising style, mysterious shadows over a pitch black background, vivid neon edge glow. ',
+    promptPrefix: 'Surreal dark 3D composition, intense violet and magenta lighting, glowing mystical elements. Massive bold sans-serif headline with a stark white inner glow at the bottom center, smaller elegant subtitles underneath, heavy compositing, high-end editorial graphic design. ',
     defaultOverlay: 0.5,
     name: 'Mystic Flow',
     desc: 'Composiciones mágicas y surreales con fuerte luz violeta, como renders 3D de alta gama (Referencia Dinheiro).',
     preview: 'https://images.unsplash.com/photo-1567007798363-228cf0bfeb4a?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'satirical-split': {
-    promptPrefix: 'Split screen composition layout, studio portrait photography, humorous marketing comparison style, high contrast expressive character holding a sign or poster, clear before-and-after narrative, clean studio background with subtle soft gradients, billboard advertisement feel, highly polished. ',
+    promptPrefix: 'Split screen composition layout, studio portrait photography, humorous before-and-after comparison. Large clean modern web sans-serif header across the top, high contrast typography on a split dark/light grey background, billboard advertisement typographic hierarchy, highly polished. ',
     defaultOverlay: 0.2,
     name: 'Satirical Compare',
     desc: 'Composiciones en pantalla dividida o formato "Mugshot". Altamente efectivo para contrastes y humor visual (Referencia Ad-ichu).',
     preview: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'cyber-glow': {
-    promptPrefix: 'Dark UI graphic design aesthetic, wireframe background grids, glowing neon yellow outlines borders and UI elements, dashed trajectory arrows, futuristic digital interface feel, modern trivia graphic post style, extreme contrast, no humans, strictly technological vector aesthetic. ',
+    promptPrefix: 'Dark UI graphic design aesthetic, wireframe background grids, glowing neon yellow outlines. Very heavy bold display typography, bold stylistic headers, floating pill-shaped text bubbles, high contrast yellow and white text layout, strictly technological vector aesthetic. ',
     defaultOverlay: 0.8,
     name: 'Neon Grid UI',
     desc: 'Gráficos vectoriales oscuros con fuerte resplandor (glow) y grillas. Ideal para datos curiosos o tech (Referencia Did you know).',
