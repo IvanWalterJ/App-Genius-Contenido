@@ -21,63 +21,98 @@ export const STYLE_CONFIGS: Record<VisualStyle, {
     defaultOverlay: 0.5,
     name: 'AUTO (IA Libre)',
     desc: 'Deja que la IA elija el mejor estilo visual según tu nicho y público objetivo.',
-    preview: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=400&h=500'
+    preview: 'https://images.unsplash.com/photo-1558655146-d09347e92766?auto=format&fit=crop&q=80&w=400&h=500'
+  },
+  'cinematic-thriller': {
+    promptPrefix: 'Gritty cinematic portrait photography, high suspense thriller movie poster aesthetic, dramatic split lighting (Rembrandt or rim light), teal and orange color grading. Intense gaze, detailed facial textures, burning elements or mysterious background (like a detective board or dark alley), raw emotional realism. ',
+    defaultOverlay: 0.6,
+    name: 'Cinematic Thriller',
+    desc: 'Retratos intensos y crudos con iluminación dramática. Ideal para romper el scroll con misterio y autoridad (Referencia Cansando).',
+    preview: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&q=80&w=400&h=500'
+  },
+  'tech-agency': {
+    promptPrefix: 'High-end B2B tech workspace photography, glowing laptop screen, dark navy blue room, warm amber desk lamp light creating a cinematic teal and orange contrast, elegant professional studio lighting, sleek and modern advertising setup. ',
+    defaultOverlay: 0.6,
+    name: 'Dark Tech Desk',
+    desc: 'Entornos profesionales de noche, iluminados por pantallas y lámparas cálidas (Referencia Advertise Precision).',
+    preview: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=400&h=500'
+  },
+  'mystic-neon': {
+    promptPrefix: 'Surreal dark 3D composition, intense deep violet and magenta lighting, glowing mystical elements floating in the air, highly detailed textures, heavy compositing advertising style, mysterious shadows over a pitch black background, vivid neon edge glow. ',
+    defaultOverlay: 0.5,
+    name: 'Mystic Flow',
+    desc: 'Composiciones mágicas y surreales con fuerte luz violeta, como renders 3D de alta gama (Referencia Dinheiro).',
+    preview: 'https://images.unsplash.com/photo-1567007798363-228cf0bfeb4a?auto=format&fit=crop&q=80&w=400&h=500'
+  },
+  'satirical-split': {
+    promptPrefix: 'Split screen composition layout, studio portrait photography, humorous marketing comparison style, high contrast expressive character holding a sign or poster, clear before-and-after narrative, clean studio background with subtle soft gradients, billboard advertisement feel, highly polished. ',
+    defaultOverlay: 0.2,
+    name: 'Satirical Compare',
+    desc: 'Composiciones en pantalla dividida o formato "Mugshot". Altamente efectivo para contrastes y humor visual (Referencia Ad-ichu).',
+    preview: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400&h=500'
+  },
+  'cyber-glow': {
+    promptPrefix: 'Dark UI graphic design aesthetic, wireframe background grids, glowing neon yellow outlines borders and UI elements, dashed trajectory arrows, futuristic digital interface feel, modern trivia graphic post style, extreme contrast, no humans, strictly technological vector aesthetic. ',
+    defaultOverlay: 0.8,
+    name: 'Neon Grid UI',
+    desc: 'Gráficos vectoriales oscuros con fuerte resplandor (glow) y grillas. Ideal para datos curiosos o tech (Referencia Did you know).',
+    preview: 'https://images.unsplash.com/photo-1614729939124-032f0b56c4ce?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'brutalism': {
-    promptPrefix: 'Brutalist graphic design, high contrast, raw unedited photography style, harsh flash, bold composition, disruptive, scroll-stopping, highly saturated accents. ',
+    promptPrefix: 'Brutalist graphic design, high contrast, raw unedited photography style, harsh flash photography, bold composition, disruptive, scroll-stopping, highly saturated accents. ',
     defaultOverlay: 0.4,
     name: 'Brutalismo',
     desc: 'Crudo, directo, alto contraste. Ideal para romper el patrón visual y captar atención inmediata.',
-    preview: 'https://picsum.photos/seed/brutal/400/500?grayscale&blur=2'
+    preview: 'https://images.unsplash.com/photo-1498084393753-b411b2d26b34?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'neon': {
     promptPrefix: 'Cyberpunk aesthetic, dark background, glowing neon accents, highly stylized, futuristic, moody lighting, high end 3d render style. ',
     defaultOverlay: 0.6,
     name: 'Neon Cyber',
     desc: 'Oscuro con acentos brillantes. Perfecto para nichos tech, gaming o marketing moderno.',
-    preview: 'https://picsum.photos/seed/neon/400/500'
+    preview: 'https://images.unsplash.com/photo-1563205762-f8b1bbdc51ac?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'clean': {
     promptPrefix: 'Ultra clean corporate aesthetic, minimalist, lots of negative space, bright soft lighting, professional photography, trustworthy, modern SaaS style. ',
     defaultOverlay: 0.3,
     name: 'Corporate Clean',
     desc: 'Limpio, confiable y profesional. Excelente para B2B, finanzas o SaaS.',
-    preview: 'https://picsum.photos/seed/clean/400/500'
+    preview: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'organic': {
     promptPrefix: 'Earthy tones, soft natural sunlight, organic textures, lifestyle photography, authentic, warm, approachable, film camera aesthetic. ',
     defaultOverlay: 0.2,
     name: 'Orgánico',
     desc: 'Tonos tierra, luz natural. Conecta emocionalmente, ideal para salud, bienestar o marcas personales.',
-    preview: 'https://picsum.photos/seed/organic/400/500'
+    preview: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'pop-art': {
-    promptPrefix: 'Pop art style, extremely vibrant colors, comic book halftone patterns, playful, energetic, highly saturated, bold outlines. ',
+    promptPrefix: 'Pop art style, extremely vibrant colors, playful, energetic, highly saturated, bold graphic design layout. ',
     defaultOverlay: 0.4,
     name: 'Pop Art',
     desc: 'Colores vibrantes y energía. Para marcas jóvenes, e-commerce o productos de consumo.',
-    preview: 'https://picsum.photos/seed/pop/400/500'
+    preview: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'luxury': {
     promptPrefix: 'Dark luxury aesthetic, moody studio lighting, elegant, premium, high-end editorial fashion photography style, black and gold tones. ',
     defaultOverlay: 0.7,
     name: 'Dark Luxury',
     desc: 'Elegante y premium. Para real estate de lujo, high-ticket coaching o productos exclusivos.',
-    preview: 'https://picsum.photos/seed/luxury/400/500'
+    preview: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'meme': {
-    promptPrefix: 'Low-fi internet aesthetic, disposable camera flash, chaotic energy, relatable, unpolished, viral social media style, shitpost aesthetic. ',
+    promptPrefix: 'Low-fi internet aesthetic, disposable camera flash, chaotic energy, relatable, unpolished, viral social media style, shitpost aesthetic, funny faces. ',
     defaultOverlay: 0.5,
     name: 'Viral / Low-fi',
     desc: 'Estética nativa de internet. Altísimo CTR por parecer contenido orgánico y no un anuncio.',
-    preview: 'https://picsum.photos/seed/meme/400/500'
+    preview: 'https://images.unsplash.com/photo-1506869640319-fea1a27e02c6?auto=format&fit=crop&q=80&w=400&h=500'
   },
   '3d-clay': {
     promptPrefix: '3D claymorphism render, soft matte materials, pastel colors, cute, friendly, smooth lighting, trendy UI illustration style. ',
     defaultOverlay: 0.3,
     name: '3D Clay',
     desc: 'Amigable y moderno. Muy popular en startups y apps B2C.',
-    preview: 'https://picsum.photos/seed/clay/400/500'
+    preview: 'https://images.unsplash.com/photo-1633420894548-2629b3d1b7ee?auto=format&fit=crop&q=80&w=400&h=500'
   }
 };
 
