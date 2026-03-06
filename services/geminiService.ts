@@ -344,10 +344,11 @@ export const generateSlideImage = async (
       }
     } catch (err: any) {
       console.warn(`${model} image gen failed:`, err.message);
-      if (err.message?.includes("not found") || err.message?.includes("not supported")) {
-        continue; // Try next model in tier
+      // Fallback for ANY error (500, 503, not found, etc) EXCEPT authentication errors.
+      if (err.message?.includes("API key not valid") || String(err.status) === "403" || err.message?.includes("401")) {
+        throw err; // Stop if it's an auth/key issue
       }
-      throw err; // Stop if it's a safety/key issue
+      continue; // Try next model in tier
     }
   }
 
