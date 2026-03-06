@@ -26,21 +26,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     useEffect(() => {
-        // Check active sessions
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                getProfile(session.user.id).then(({ data }) => setProfile(data));
+        const initializeAuth = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                setUser(session?.user ?? null);
+                if (session?.user) {
+                    const { data } = await getProfile(session.user.id);
+                    if (data) setProfile(data);
+                }
+            } catch (err) {
+                console.error("Auth initialization error:", err);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
-        });
+        };
 
-        // Listen for changes on auth state
+        initializeAuth();
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setUser(session?.user ?? null);
             if (session?.user) {
-                const { data } = await getProfile(session.user.id);
-                setProfile(data);
+                try {
+                    const { data } = await getProfile(session.user.id);
+                    setProfile(data);
+                } catch (err) {
+                    console.error("Profile refresh error:", err);
+                }
             } else {
                 setProfile(null);
             }
