@@ -13,18 +13,38 @@ export type Profile = {
 };
 
 export const getProfile = async (userId: string) => {
-    const { data, error } = await supabase
+    let { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+
+    // Fallback: If profile doesn't exist, try to create it (e.g. for manually created users)
+    if (!data && !error) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData?.user) {
+            const { data: newProfile, error: createError } = await supabase
+                .from('profiles')
+                .insert({ id: userId, email: userData.user.email, credits: 50 })
+                .select()
+                .single();
+            if (!createError) return { data: newProfile as Profile, error: null };
+        }
+    }
+
     return { data: data as Profile, error };
 };
 
 export const useCredit = async (userId: string) => {
-    const { data: profile } = await getProfile(userId);
-    if (!profile || profile.credits <= 0) {
-        throw new Error('No tienes créditos suficientes.');
+    const { data: profile, error: getError } = await getProfile(userId);
+
+    if (getError || !profile) {
+        console.error("Profile Error:", getError);
+        throw new Error('No se pudo verificar tu perfil o créditos.');
+    }
+
+    if (profile.credits <= 0) {
+        throw new Error('No tienes créditos suficientes. Tu límite mensual de 50 ha sido alcanzado.');
     }
 
     const { error } = await supabase
@@ -32,7 +52,11 @@ export const useCredit = async (userId: string) => {
         .update({ credits: profile.credits - 1 })
         .eq('id', userId);
 
-    if (error) throw error;
+    if (error) {
+        console.error("Credit Update Error:", error);
+        throw new Error('Error al descontar crédito.');
+    }
+
     return true;
 };
 

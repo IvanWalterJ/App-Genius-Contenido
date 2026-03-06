@@ -183,6 +183,7 @@ const App: React.FC = () => {
 
     const handleAIError = (err: any) => {
         console.error("AI Error Captured:", err);
+        setStatus(null); // Reset status on error to stop infinite loading
         const msg = (err.message || "").toLowerCase();
 
         if (msg.includes("leaked")) {
@@ -353,11 +354,12 @@ const App: React.FC = () => {
             // Do NOT overwrite project state here to avoid reverting user edits
             const updatedHistory = saveToHistory(finalProject);
             setHistory(updatedHistory);
-
-            setStatus('done');
+            setStatus(null); // Success! Reset status
         } catch (err: any) {
             handleAIError(err);
-            setStatus('error');
+            // setStatus('error'); // Removed as per "reset status" in finally
+        } finally {
+            setStatus(null); // Reset status to null ensuring it's not stuck in 'processing'
         }
     };
 
