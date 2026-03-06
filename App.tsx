@@ -3,6 +3,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AdProject, GenerationStatus, Slide, ContentIntent, VisualStyle, AspectRatio, GenerationMode, BrandContext } from './types';
 import { generateAdCopy, generateSlideImage, enhancePrompt, regenerateSlideCopy, editImage, generateVideo, getApiKey } from './services/geminiService';
 import { getHistory, saveToHistory, deleteFromHistory } from './services/historyService';
+import { supabase, useCredit } from './services/supabase';
+import { useAuth } from './components/AuthContext';
+import { Login } from './components/Login';
 import SlideCard from './components/SlideCard';
 import { COLOR_THEMES, STYLE_CONFIGS, FONT_OPTIONS, DISRUPTIVE_STYLES } from './constants';
 
@@ -23,6 +26,7 @@ import {
 const QUICK_COLORS = ['#ffffff', '#000000', '#06b6d4', '#8b5cf6', '#d946ef', '#f43f5e', '#3b82f6'];
 
 const App: React.FC = () => {
+    const { user, profile, loading, signOut, refreshProfile } = useAuth();
     const [hasKey, setHasKey] = useState(false);
     const [prompt, setPrompt] = useState('');
     const [genMode, setGenMode] = useState<GenerationMode>('carousel');
@@ -199,12 +203,22 @@ const App: React.FC = () => {
     };
 
     const handleGenerate = async () => {
-        if (!prompt.trim()) return;
+        if (!prompt.trim() || !user) return;
+
+        // Check credits
+        if (profile && profile.credits <= 0) {
+            setError("No tienes créditos suficientes. Tu límite mensual de 50 ha sido alcanzado.");
+            return;
+        }
+
         setStatus('generating-copy');
         setError(null);
         setActiveSlideIdx(0);
 
         try {
+            // Deduct credit
+            await useCredit(user.id);
+            await refreshProfile();
             const copyResult = await generateAdCopy(
                 prompt, genMode, intent, style, brandContext,
                 designReference || undefined, knowledgeBase || undefined, textMode,
@@ -328,6 +342,14 @@ const App: React.FC = () => {
 
             // Final Save to History
             const finalProject = { ...newProject, slides: [...updatedSlides] };
+
+            // Save to Supabase DB as well
+            await supabase.from('generations').insert({
+                user_id: user.id,
+                type: genMode,
+                content: finalProject
+            });
+
             // Do NOT overwrite project state here to avoid reverting user edits
             const updatedHistory = saveToHistory(finalProject);
             setHistory(updatedHistory);
@@ -505,6 +527,18 @@ const App: React.FC = () => {
         }
     };
 
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+                <Loader2 className="w-10 h-10 text-violet-500 animate-spin" />
+            </div>
+        );
+    }
+
+    if (!user) {
+        return <Login />;
+    }
+
     if (!hasKey) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-deep-bg text-white p-4">
@@ -547,6 +581,22 @@ const App: React.FC = () => {
                             <p className="text-xs text-neutral-400 font-bold tracking-widest mt-1">CREATIVE STUDIO PRO</p>
                         </div>
                     </div>
+                </div>
+
+                {/* User Profile & Credits */}
+                <div className="p-4 bg-white/[0.03] border border-white/5 rounded-2xl flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-500/20 to-cyan-500/20 flex items-center justify-center border border-white/10 uppercase font-black text-xs text-violet-400">
+                            {user?.email?.[0]}
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black tracking-widest text-neutral-500 uppercase">Créditos Disponibles</span>
+                            <span className="text-sm font-black text-white">{profile?.credits ?? 0} / 50</span>
+                        </div>
+                    </div>
+                    <button onClick={() => signOut()} className="p-2 hover:bg-white/5 rounded-lg text-neutral-500 hover:text-red-400 transition-all">
+                        <XCircle className="w-5 h-5" />
+                    </button>
                 </div>
 
                 {/* Sidebar Tabs - iOS Segment Control Style */}
