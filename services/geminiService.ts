@@ -144,15 +144,16 @@ export const generateAdCopy = async (
   - Público Objetivo: ${brandContext.targetAudience || '(audiencia general)'}
   - Tono de Voz: ${brandContext.tone || 'Profesional y Persuasivo'}
   
-  ## REGLAS DE ORO DEL COPY:
-  1. Habla DIRECTAMENTE al ${brandContext.targetAudience || 'cliente'} usando SUS palabras, dolores y deseos reales.
-  2. El headline debe DETENER el scroll — usa gatillos mentales: curiosidad, dolor, promesa audaz, número específico.
-  3. El subheadline amplifica el headline con un beneficio concreto o prueba social.
-  4. NUNCA uses frases genéricas como "Mejora tu vida" o "El mejor servicio". Sé ESPECÍFICO al nicho: ${brandContext.niche || 'el sector'}.
-  5. El tono DEBE ser ${brandContext.tone || 'Profesional y Persuasivo'} en TODOS los slides.
-  6. La CTA debe crear urgencia o reducir fricción (ej: "Agenda tu llamada gratis", "Ver cómo funciona").
+  ## REGLAS DE ORO DEL COPY (OBLIGATORIO: TODO EN ESPAÑOL):
+  1. TODO EL OUTPUT DEBE ESTAR EN ESPAÑOL. NUNCA EN INGLÉS.
+  2. Habla DIRECTAMENTE al ${brandContext.targetAudience || 'cliente'} usando SUS palabras, dolores y deseos reales.
+  3. El headline debe DETENER el scroll — usa gatillos mentales: curiosidad, dolor, promesa audaz, número específico.
+  4. El subheadline amplifica el headline con un beneficio concreto o prueba social.
+  5. NUNCA uses frases genéricas como "Mejora tu vida" o "El mejor servicio". Sé ESPECÍFICO al nicho: ${brandContext.niche || 'el sector'}.
+  6. El tono DEBE ser ${brandContext.tone || 'Profesional y Persuasivo'} en TODOS los slides.
+  7. La CTA debe crear urgencia o reducir fricción (ej: "Agenda tu llamada gratis", "Ver cómo funciona").
   
-  ## IDEA BASE DEL USUARIO (úsala como inspiración, no copiando literalmente):
+  ## IDEA BASE DEL USUARIO (úsala como inspiración, no copiando literalmente - RESPONDER SIEMPRE EN ESPAÑOL):
   "${prompt}"
   
   ${brandContext.tone ? `## TONO ESPECÍFICO: ${brandContext.tone} — que esto se SIENTA en cada palabra.` : ''}

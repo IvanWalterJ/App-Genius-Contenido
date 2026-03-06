@@ -20,8 +20,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const refreshProfile = async () => {
         if (user) {
-            const { data } = await getProfile(user.id);
-            if (data) setProfile(data);
+            try {
+                // Use a local timeout for individual refresh calls
+                const { data } = await Promise.race([
+                    getProfile(user.id),
+                    new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Refresh Timeout")), 5000))
+                ]);
+                if (data) setProfile(data);
+            } catch (err) {
+                console.warn("Profile refresh missed (will retry on next event):", err);
+            }
         }
     };
 

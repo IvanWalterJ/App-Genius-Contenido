@@ -217,9 +217,12 @@ const App: React.FC = () => {
         setActiveSlideIdx(0);
 
         try {
-            // Deduct credit
+            // Deduct credit (blocks here)
             await useCredit(user.id);
-            await refreshProfile();
+
+            // Trigger profile refresh in background so it doesn't stall the main AI flow
+            refreshProfile().catch(console.error);
+
             const copyResult = await generateAdCopy(
                 prompt, genMode, intent, style, brandContext,
                 designReference || undefined, knowledgeBase || undefined, textMode,
@@ -344,11 +347,14 @@ const App: React.FC = () => {
             // Final Save to History
             const finalProject = { ...newProject, slides: [...updatedSlides] };
 
-            // Save to Supabase DB as well
-            await supabase.from('generations').insert({
+            // Save to Supabase DB (Background save to avoid stalling UI)
+            supabase.from('generations').insert({
                 user_id: user.id,
                 type: genMode,
                 content: finalProject
+            }).then(({ error }) => {
+                if (error) console.error("History Save Error:", error);
+                else console.log("Generation saved to Supabase");
             });
 
             // Do NOT overwrite project state here to avoid reverting user edits
