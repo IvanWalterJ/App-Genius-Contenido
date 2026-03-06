@@ -26,39 +26,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     useEffect(() => {
-        const initializeAuth = async () => {
+        // Initial session check
+        const initSession = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
-                setUser(session?.user ?? null);
-                if (session?.user) {
-                    const { data } = await getProfile(session.user.id);
+                const currentUser = session?.user ?? null;
+                setUser(currentUser);
+
+                // Don't wait for profile to stop the loading spinner
+                setLoading(false);
+
+                if (currentUser) {
+                    const { data } = await getProfile(currentUser.id);
                     if (data) setProfile(data);
                 }
             } catch (err) {
-                console.error("Auth initialization error:", err);
-            } finally {
+                console.error("Auth init error:", err);
                 setLoading(false);
             }
         };
 
-        initializeAuth();
+        initSession();
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                try {
-                    const { data } = await getProfile(session.user.id);
-                    setProfile(data);
-                } catch (err) {
-                    console.error("Profile refresh error:", err);
-                }
+        // Safety timeout: Never stay in loading state for more than 5 seconds
+        const timer = setTimeout(() => {
+            setLoading(false);
+        }, 5000);
+
+        // Listen for auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log("Auth Event:", event);
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+
+            if (currentUser) {
+                const { data } = await getProfile(currentUser.id);
+                setProfile(data);
             } else {
                 setProfile(null);
             }
+
             setLoading(false);
+            clearTimeout(timer);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            subscription.unsubscribe();
+            clearTimeout(timer);
+        };
     }, []);
 
     const signOut = async () => {
