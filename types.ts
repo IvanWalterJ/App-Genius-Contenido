@@ -10,6 +10,8 @@ export interface BrandContext {
   niche: string;
   targetAudience: string;
   tone: string;
+  colorPalette?: string;
+  brandPersonality?: string;
 }
 
 export interface Slide {

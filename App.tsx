@@ -639,7 +639,7 @@ const App: React.FC = () => {
             <main className="flex-1 overflow-y-auto bg-deep-bg relative">
                 <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-accent-primary/5 via-accent-secondary/5 to-transparent pointer-events-none" />
 
-                {!project ? (
+                {sidebarMode !== 'create' || !project ? (
                     <div className="flex flex-col items-center pt-16 md:pt-24 px-4 max-w-5xl mx-auto w-full z-10 animate-in fade-in zoom-in duration-700 min-h-screen">
 
                         {sidebarMode === 'brands' ? (
@@ -694,6 +694,49 @@ const App: React.FC = () => {
                                             <option value="Educativo y Autoridad">🎓 Educativo y Autoridad</option>
                                             <option value="Inspiracional y Emotivo">✨ Inspiracional y Emotivo</option>
                                         </select>
+                                    </div>
+
+                                    {/* COLOR PALETTE */}
+                                    <div className="space-y-2 pt-2 border-t border-white/5">
+                                        <div className="flex items-center gap-2">
+                                            <Palette className="w-3 h-3 text-accent-primary" />
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Paleta de Colores de Marca</label>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={brandContext.colorPalette || ''}
+                                            onChange={(e) => setBrandContext({ ...brandContext, colorPalette: e.target.value })}
+                                            placeholder="Ej: Naranja #F97316, Negro #0A0A0A, Blanco hueso #FEF9EF"
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-accent-primary/50 outline-none transition-all placeholder:text-neutral-700 text-bone-white"
+                                        />
+                                        <p className="text-[10px] text-neutral-600 ml-1">La IA usará estos colores para generar imágenes y copy alineados con tu marca.</p>
+                                        <div className="flex flex-wrap gap-2 pt-1">
+                                            {[
+                                                { label: 'Onyx + Naranja', value: 'Negro #0A0A0A, Naranja #F97316, Blanco #FEF9EF' },
+                                                { label: 'Azul + Dorado', value: 'Azul marino #0F172A, Dorado #F59E0B, Blanco #FFFFFF' },
+                                                { label: 'Verde + Negro', value: 'Negro #000000, Verde neón #22C55E, Gris #6B7280' },
+                                                { label: 'Violeta + Rosa', value: 'Violeta #7C3AED, Rosa #EC4899, Blanco #FFFFFF' },
+                                            ].map(preset => (
+                                                <button
+                                                    key={preset.label}
+                                                    onClick={() => setBrandContext({ ...brandContext, colorPalette: preset.value })}
+                                                    className="text-[10px] font-bold px-3 py-1 rounded-full border border-white/10 bg-white/5 text-neutral-400 hover:border-accent-primary/50 hover:text-accent-primary transition-all"
+                                                >
+                                                    {preset.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* BRAND PERSONALITY */}
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Personalidad / USP (Opcional)</label>
+                                        <textarea
+                                            value={brandContext.brandPersonality || ''}
+                                            onChange={(e) => setBrandContext({ ...brandContext, brandPersonality: e.target.value })}
+                                            placeholder="Ej: Somos la agencia más disruptiva de LATAM..."
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-accent-primary/50 outline-none transition-all placeholder:text-neutral-700 text-bone-white resize-none h-20"
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -774,7 +817,7 @@ const App: React.FC = () => {
                                         history.flatMap(p => p.slides.filter(s => sidebarMode === 'winners' ? s.isWinner : true).map(s => ({ ...s, p })))
                                             .slice(0, 20)
                                             .map((item, i) => (
-                                                <div key={i} onClick={() => loadProject(item.p)} className="bg-deep-surface border border-white/5 rounded-2xl p-3 cursor-pointer hover:border-white/20 transition-all hover:scale-[1.02] group shadow-xl">
+                                                <div key={i} onClick={() => { loadProject(item.p); setSidebarMode('create'); }} className="bg-deep-surface border border-white/5 rounded-2xl p-3 cursor-pointer hover:border-white/20 transition-all hover:scale-[1.02] group shadow-xl">
                                                     <div className="aspect-[3/4] rounded-xl overflow-hidden mb-3 bg-black/50 relative">
                                                         {item.backgroundImageUrl ? (
                                                             <img src={item.backgroundImageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
@@ -927,7 +970,7 @@ const App: React.FC = () => {
                         )}
                     </div>
                 ) : (
-                    <div className="w-full max-w-7xl space-y-8 md:space-y-12 pb-32 z-10 px-2 md:px-0">
+                    <div className="w-full max-w-7xl space-y-8 md:space-y-12 pb-32 z-10 px-4 md:px-12 mx-auto">
                         {/* Header */}
                         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-8">
                             <div className="space-y-2">
@@ -961,7 +1004,7 @@ const App: React.FC = () => {
                                 <div className="relative w-full flex flex-col md:flex-row items-center justify-center group gap-4">
                                     <button onClick={() => setActiveSlideIdx(Math.max(0, activeSlideIdx - 1))} className="hidden md:block absolute -left-16 z-30 p-5 bg-neutral-900 border border-white/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 text-white shadow-xl" disabled={activeSlideIdx === 0}><ChevronLeft className="w-8 h-8" /></button>
 
-                                    <div className="w-full max-w-[650px] animate-in slide-in-from-right-8 duration-500 relative ring-1 ring-white/10 shadow-2xl">
+                                    <div className="w-full max-w-[580px] px-2 md:px-0 animate-in slide-in-from-right-8 duration-500 relative ring-1 ring-white/10 shadow-2xl transition-all">
                                         <div className="relative flex justify-center">
                                             <SlideCard
                                                 id="active-slide-export"
@@ -1003,10 +1046,10 @@ const App: React.FC = () => {
 
                                     {/* Top Actions */}
                                     <div className="grid grid-cols-2 gap-3">
-                                        <button onClick={handleRegenerateSlideCopy} disabled={regeneratingCopy} className="bg-purple-900/30 hover:bg-purple-900/50 p-4 rounded-2xl text-xs font-bold text-purple-200 flex items-center justify-center gap-3 border border-purple-500/20 transition-all hover:scale-[1.02]">
+                                        <button onClick={handleRegenerateSlideCopy} disabled={regeneratingCopy} className="bg-accent-primary/10 hover:bg-accent-primary/20 p-4 rounded-2xl text-xs font-bold text-accent-primary flex items-center justify-center gap-3 border border-accent-primary/30 transition-all hover:scale-[1.02] shadow-[0_0_20px_rgba(249,115,22,0.1)]">
                                             {regeneratingCopy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />} REESCRIBIR COPY
                                         </button>
-                                        <button onClick={handleRegenerateSlideImage} disabled={regeneratingImage} className="bg-blue-900/30 hover:bg-blue-900/50 p-4 rounded-2xl text-xs font-bold text-blue-200 flex items-center justify-center gap-3 border border-blue-500/20 transition-all hover:scale-[1.02]">
+                                        <button onClick={handleRegenerateSlideImage} disabled={regeneratingImage} className="bg-white/5 hover:bg-white/10 p-4 rounded-2xl text-xs font-bold text-bone-white flex items-center justify-center gap-3 border border-white/10 transition-all hover:scale-[1.02]">
                                             {regeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} NUEVA IMAGEN
                                         </button>
                                     </div>
@@ -1027,13 +1070,13 @@ const App: React.FC = () => {
                                     {/* TEXT EDITOR TAB (Simplified for Baked Mode) */}
                                     {editorTab === 'text' && (
                                         <div className="space-y-5 animate-in fade-in duration-300">
-                                            <div className="p-6 text-center border-2 border-dashed border-violet-500/30 rounded-3xl bg-violet-500/5 flex flex-col items-center gap-4">
-                                                <div className="p-4 bg-violet-500/10 rounded-full">
-                                                    <Sparkles className="w-8 h-8 text-violet-400" />
+                                            <div className="p-6 text-center border border-white/5 rounded-3xl bg-black/40 flex flex-col items-center gap-4">
+                                                <div className="p-4 bg-accent-primary/10 rounded-full">
+                                                    <Sparkles className="w-8 h-8 text-accent-primary" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm text-violet-200 font-bold uppercase tracking-widest">IA: Nano Banana 2</p>
-                                                    <p className="text-xs text-violet-400/70 mt-2 max-w-xs mx-auto leading-relaxed">
+                                                    <p className="text-sm text-accent-primary font-bold uppercase tracking-widest">IA: Engine de Respuesta Directa v4</p>
+                                                    <p className="text-xs text-neutral-400 mt-2 max-w-xs mx-auto leading-relaxed">
                                                         El diseño y el texto están fusionados por la IA para un resultado ultra profesional.
                                                         Para cambiar el copy, edita el texto abajo y pulsa <strong className="text-white">"NUEVA IMAGEN"</strong>.
                                                     </p>
@@ -1097,13 +1140,13 @@ const App: React.FC = () => {
                                             </div>
 
                                             {/* MAGIC EDIT SECTION */}
-                                            <div className="p-5 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-2xl space-y-4 shadow-lg shadow-cyan-500/5">
+                                            <div className="p-5 bg-gradient-to-br from-accent-primary/10 to-accent-secondary/5 border border-accent-primary/20 rounded-2xl space-y-4 shadow-lg shadow-orange-500/5">
                                                 <div className="flex items-center gap-3 mb-1">
-                                                    <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                                                        <Sparkles className="w-4 h-4 text-cyan-400" />
+                                                    <div className="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center">
+                                                        <Sparkles className="w-4 h-4 text-accent-primary" />
                                                     </div>
                                                     <div className="flex flex-col">
-                                                        <label className="text-[10px] font-black uppercase tracking-widest text-cyan-400">AI Magic Edit</label>
+                                                        <label className="text-[10px] font-black uppercase tracking-widest text-accent-primary">AI Magic Edit</label>
                                                         <span className="text-[9px] text-neutral-500 font-bold">Edita con lenguaje natural</span>
                                                     </div>
                                                 </div>

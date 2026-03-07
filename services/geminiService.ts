@@ -116,7 +116,7 @@ export const enhancePrompt = async (rawPrompt: string): Promise<string> => {
     const response = await withTimeout(
       ai.models.generateContent({
         model: "models/gemini-1.5-flash",
-        contents: [{ parts: [{ text: `Rewrite prompt for marketing. Input: "${rawPrompt}". Output Spanish. Keep it short. Return ONLY text.` }] }],
+        contents: [{ parts: [{ text: `Actúa como un experto en copywriting de respuesta directa. Optimiza el siguiente prompt para que la IA genere mejores imágenes y textos de venta. REQUISITO: El resultado debe estar en ESPAÑOL y ser conciso. Input: "${rawPrompt}". Devuelve solo el prompt optimizado sin etiquetas ni introducciones.` }] }],
       }),
       15000,
       "Enhance Prompt Timeout"
@@ -157,6 +157,8 @@ export const generateAdCopy = async (
   - Sector/Nicho: ${brandContext.niche || '(sin nicho)'}
   - Público Objetivo: ${brandContext.targetAudience || '(audiencia general)'}
   - Tono de Voz: ${brandContext.tone || 'Profesional y Persuasivo'}
+  ${brandContext.colorPalette ? `- Paleta de Colores de Marca: ${brandContext.colorPalette} — USA ESTOS COLORES en los visualPrompts de imagen cuando describes ambientes, elementos y atmósferas.` : ''}
+  ${brandContext.brandPersonality ? `- Personalidad de Marca / USP: ${brandContext.brandPersonality} — Refleja esta personalidad en el tono y mensajes.` : ''}
   
   ## REGLAS DE ORO DEL COPY (OBLIGATORIO: TODO EN ESPAÑOL):
   1. TODO EL OUTPUT DEBE ESTAR EN ESPAÑOL. NUNCA EN INGLÉS.
@@ -166,6 +168,7 @@ export const generateAdCopy = async (
   5. NUNCA uses frases genéricas como "Mejora tu vida" o "El mejor servicio". Sé ESPECÍFICO al nicho: ${brandContext.niche || 'el sector'}.
   6. El tono DEBE ser ${brandContext.tone || 'Profesional y Persuasivo'} en TODOS los slides.
   7. La CTA debe crear urgencia o reducir fricción (ej: "Agenda tu llamada gratis", "Ver cómo funciona").
+  ${brandContext.colorPalette ? `8. En los visualPrompts de imagen, incorpora la paleta de colores de marca: ${brandContext.colorPalette}` : ''}
   
   ## IDEA BASE DEL USUARIO (úsala como inspiración, no copiando literalmente - RESPONDER SIEMPRE EN ESPAÑOL):
   "${prompt}"
