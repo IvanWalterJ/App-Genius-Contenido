@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --primary: #030014;
-  --surface: #0a0521;
-  --accent: #8b5cf6;
-  --accent-cyan: #06b6d4;
+  --primary: #121212;
+  --surface: #1e1e1e;
+  --accent: #f97316;
+  --accent-cyan: #f59e0b;
 }
 
 body {
@@ -13,7 +13,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   font-family: 'Inter', sans-serif;
   background-color: var(--primary);
-  color: #ffffff;
+  color: #F5F5F0;
   overflow-x: hidden;
 }
 
@@ -121,4 +121,9 @@ body {
   --font-raleway: "Raleway", sans-serif;
 
   --color-brand-yellow: #facc15;
+  --color-deep-bg: #1A1A1A;
+  --color-deep-surface: #242424;
+  --color-accent-primary: #f97316;
+  --color-accent-secondary: #f59e0b;
+  --color-bone-white: #F5F5F0;
 }

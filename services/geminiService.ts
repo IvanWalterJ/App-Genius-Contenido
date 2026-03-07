@@ -3,6 +3,16 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Slide, AdProject, ContentIntent, VisualStyle, AspectRatio, BrandContext } from "../types";
 import { STYLE_CONFIGS } from "../constants";
 
+// Helper to wrap promises with a timeout
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+    )
+  ]);
+};
+
 // Helper to clean Markdown JSON significantly more robustly
 const cleanJSON = (text: string) => {
   if (!text) return "{}";
@@ -103,10 +113,14 @@ export const enhancePrompt = async (rawPrompt: string): Promise<string> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   try {
-    const response = await ai.models.generateContent({
-      model: "models/gemini-1.5-flash",
-      contents: [{ parts: [{ text: `Rewrite prompt for marketing. Input: "${rawPrompt}". Output Spanish. Keep it short. Return ONLY text.` }] }],
-    });
+    const response = await withTimeout(
+      ai.models.generateContent({
+        model: "models/gemini-1.5-flash",
+        contents: [{ parts: [{ text: `Rewrite prompt for marketing. Input: "${rawPrompt}". Output Spanish. Keep it short. Return ONLY text.` }] }],
+      }),
+      15000,
+      "Enhance Prompt Timeout"
+    );
     return response.text?.trim() || rawPrompt;
   } catch (e: any) {
     console.error("Enhance Prompt Error:", e.message);
@@ -120,10 +134,10 @@ export const generateAdCopy = async (
   intent: ContentIntent,
   style: VisualStyle,
   brandContext: BrandContext,
-  styleReference?: string,
+  styleReference?: string | string[],
   knowledgeBase?: string,
   textMode: 'overlay' | 'baked' = 'overlay',
-  characterReference?: string,
+  characterReference?: string | string[],
   slideCount: number = 6
 ): Promise<any> => {
   const apiKey = getApiKey();
@@ -186,12 +200,18 @@ export const generateAdCopy = async (
 
   const contentParts: any[] = [];
   if (styleReference) {
-    const base64Data = styleReference.split(',')[1];
-    contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+    const refs = Array.isArray(styleReference) ? styleReference : [styleReference];
+    refs.forEach(ref => {
+      const base64Data = ref?.split(',')[1];
+      if (base64Data) contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+    });
   }
   if (characterReference) {
-    const base64Data = characterReference.split(',')[1];
-    contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+    const refs = Array.isArray(characterReference) ? characterReference : [characterReference];
+    refs.forEach(ref => {
+      const base64Data = ref?.split(',')[1];
+      if (base64Data) contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+    });
   }
   contentParts.push({ text: sysInstruction });
 
@@ -240,11 +260,15 @@ export const generateAdCopy = async (
   for (const model of models) {
     try {
       console.log(`Copy Gen: Trying ${model}...`);
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: [{ parts: contentParts }],
-        config: { responseMimeType: "application/json", responseSchema: schema }
-      });
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model: model,
+          contents: [{ parts: contentParts }],
+          config: { responseMimeType: "application/json", responseSchema: schema }
+        }),
+        25000,
+        `Copy Generation Timeout: ${model}`
+      );
       return JSON.parse(cleanJSON(response.text || '{}'));
     } catch (err: any) {
       console.warn(`${model} copy gen failed:`, err.message);
@@ -265,9 +289,9 @@ export const generateSlideImage = async (
   accentColor?: string,
   isBatch: boolean = false,
   headlineFont?: string,
-  characterReference?: string,
+  characterReference?: string | string[],
   customStyle?: string,
-  styleReference?: string
+  styleReference?: string | string[]
 ): Promise<string> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
@@ -313,8 +337,11 @@ export const generateSlideImage = async (
       const contentParts: any[] = [];
 
       if (styleReference) {
-        const base64Data = styleReference.split(',')[1];
-        contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+        const refs = Array.isArray(styleReference) ? styleReference : [styleReference];
+        refs.forEach(ref => {
+          const base64Data = ref?.split(',')[1];
+          if (base64Data) contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+        });
         // Add a specialized style instruction
         fullPrompt += ` \nSTYLE REFERENCE INSTRUCTION: Replicate the EXACT visual DNA of the provided reference image. This includes: 
         1. COLOR PALETTE: Use the same dominant colors and accent glows (e.g., magenta/purple neon).
@@ -324,18 +351,25 @@ export const generateSlideImage = async (
       }
 
       if (characterReference) {
-        const base64Data = characterReference.split(',')[1];
-        contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+        const refs = Array.isArray(characterReference) ? characterReference : [characterReference];
+        refs.forEach(ref => {
+          const base64Data = ref?.split(',')[1];
+          if (base64Data) contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+        });
       }
 
       // Add the final prompt after the visual references
       contentParts.push({ text: fullPrompt });
 
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: [{ parts: contentParts }],
-        config: configObj
-      });
+      const response = await withTimeout(
+        ai.models.generateContent({
+          model: model,
+          contents: [{ parts: contentParts }],
+          config: configObj
+        }),
+        45000,
+        `Image Generation Timeout: ${model}`
+      );
 
       for (const part of response.candidates?.[0]?.content?.parts || []) {
         if ((part as any).inlineData?.data) {
@@ -382,10 +416,14 @@ export const magicRewrite = async (text: string, tone: string): Promise<string> 
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   try {
-    const response = await ai.models.generateContent({
-      model: "models/gemini-1.5-flash",
-      contents: [{ parts: [{ text: `Rewrite: "${text}" to be ${tone}. Spanish. Return ONLY text.` }] }],
-    });
+    const response = await withTimeout(
+      ai.models.generateContent({
+        model: "models/gemini-1.5-flash",
+        contents: [{ parts: [{ text: `Rewrite: "${text}" to be ${tone}. Spanish. Return ONLY text.` }] }],
+      }),
+      10000,
+      "Magic Rewrite Timeout"
+    );
     return response.text?.trim() || text;
   } catch (e) {
     return text;
@@ -397,15 +435,19 @@ export const editImage = async (base64Image: string, prompt: string): Promise<st
   const ai = new GoogleGenAI({ apiKey });
   const base64Data = base64Image.split(',')[1] || base64Image;
   try {
-    const response = await ai.models.generateContent({
-      model: 'models/gemini-1.5-flash',
-      contents: [{
-        parts: [
-          { inlineData: { data: base64Data, mimeType: "image/png" } },
-          { text: prompt }
-        ]
-      }]
-    });
+    const response = await withTimeout(
+      ai.models.generateContent({
+        model: 'models/gemini-1.5-flash',
+        contents: [{
+          parts: [
+            { inlineData: { data: base64Data, mimeType: "image/png" } },
+            { text: prompt }
+          ]
+        }]
+      }),
+      20000,
+      "Edit Image Timeout"
+    );
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if ((part as any).inlineData?.data) {
         return `data:image/png;base64,${(part as any).inlineData.data}`;

@@ -41,7 +41,7 @@ const App: React.FC = () => {
     const [activeSlideIdx, setActiveSlideIdx] = useState(0);
 
     // New features state
-    const [refImage, setRefImage] = useState<string | null>(null);
+    const [refImages, setRefImages] = useState<string[]>([]);
     const [showSafeZones, setShowSafeZones] = useState(false);
     const [regeneratingImage, setRegeneratingImage] = useState(false);
     const [regeneratingCopy, setRegeneratingCopy] = useState(false);
@@ -82,7 +82,7 @@ const App: React.FC = () => {
         tone: 'Profesional y Persuasivo'
     });
 
-    const [designReference, setDesignReference] = useState<string | null>(null);
+    const [designReferences, setDesignReferences] = useState<string[]>([]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const bgInputRef = useRef<HTMLInputElement>(null);
@@ -126,11 +126,13 @@ const App: React.FC = () => {
     };
 
     const handleRefImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => setRefImage(reader.result as string);
-            reader.readAsDataURL(file);
+        const files = e.target.files;
+        if (files) {
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onloadend = () => setRefImages(prev => [...prev, reader.result as string]);
+                reader.readAsDataURL(file);
+            });
         }
     };
 
@@ -149,11 +151,13 @@ const App: React.FC = () => {
     };
 
     const handleDesignRefUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => setDesignReference(reader.result as string);
-            reader.readAsDataURL(file);
+        const files = e.target.files;
+        if (files) {
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onloadend = () => setDesignReferences(prev => [...prev, reader.result as string]);
+                reader.readAsDataURL(file);
+            });
         }
     };
 
@@ -183,7 +187,7 @@ const App: React.FC = () => {
 
     const handleAIError = (err: any) => {
         console.error("AI Error Captured:", err);
-        setStatus(null); // Reset status on error to stop infinite loading
+        setStatus('error'); // Reset to error status to enable the button again
         const msg = (err.message || "").toLowerCase();
 
         if (msg.includes("leaked")) {
@@ -225,8 +229,8 @@ const App: React.FC = () => {
 
             const copyResult = await generateAdCopy(
                 prompt, genMode, intent, style, brandContext,
-                designReference || undefined, knowledgeBase || undefined, textMode,
-                refImage || undefined, slideCount
+                designReferences.length > 0 ? designReferences : undefined, knowledgeBase || undefined, textMode,
+                refImages.length > 0 ? refImages : undefined, slideCount
             );
 
             // Enforce slide count limit (critical for single-image bug fix)
@@ -307,7 +311,7 @@ const App: React.FC = () => {
             setStatus('generating-visuals');
 
             const updatedSlides = [...newProject.slides];
-            const useReferenceStyle = !!refImage;
+            const useReferenceStyle = designReferences.length > 0 || refImages.length > 0;
 
             for (let i = 0; i < updatedSlides.length; i++) {
                 if (i > 0) await new Promise(r => setTimeout(r, 200));
@@ -320,8 +324,10 @@ const App: React.FC = () => {
                     imageUrl = await generateSlideImage(
                         updatedSlides[i].visualPrompt, style, useReferenceStyle, aspectRatio,
                         updatedSlides[i].headline, 'baked', updatedSlides[i].subHeadline, slideAccent,
-                        genMode === 'angles-batch', updatedSlides[i].headlineFont, refImage || undefined,
-                        updatedSlides[i].customStyle, designReference || undefined
+                        genMode === 'angles-batch', updatedSlides[i].headlineFont,
+                        refImages.length > 0 ? refImages : undefined,
+                        updatedSlides[i].customStyle,
+                        designReferences.length > 0 ? designReferences : undefined
                     );
                 } catch (imgErr: any) {
                     imageError = "Error de IA";
@@ -360,12 +366,12 @@ const App: React.FC = () => {
             // Do NOT overwrite project state here to avoid reverting user edits
             const updatedHistory = saveToHistory(finalProject);
             setHistory(updatedHistory);
-            setStatus(null); // Success! Reset status
+            setStatus('done'); // Success! Unlock button early
         } catch (err: any) {
             handleAIError(err);
-            // setStatus('error'); // Removed as per "reset status" in finally
         } finally {
-            setStatus(null); // Reset status to null ensuring it's not stuck in 'processing'
+            // Always ensure status is reset to a state that unlocks the button
+            setStatus('idle');
         }
     };
 
@@ -376,10 +382,12 @@ const App: React.FC = () => {
         const currentSlide = project.slides[slideIdx];
         try {
             const newUrl = await generateSlideImage(
-                currentSlide.visualPrompt, project.visualStyle, !!refImage, project.aspectRatio,
+                currentSlide.visualPrompt, project.visualStyle, refImages.length > 0, project.aspectRatio,
                 currentSlide.headline, 'baked', currentSlide.subHeadline, userAccentColor,
-                project.mode === 'angles-batch', currentSlide.headlineFont, refImage || undefined,
-                currentSlide.customStyle
+                project.mode === 'angles-batch', currentSlide.headlineFont,
+                refImages.length > 0 ? refImages : undefined,
+                currentSlide.customStyle,
+                designReferences.length > 0 ? designReferences : undefined
             );
             updateSlide(slideIdx, { backgroundImageUrl: newUrl, imageError: undefined });
         } catch (err) {
@@ -537,8 +545,8 @@ const App: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-                <Loader2 className="w-10 h-10 text-violet-500 animate-spin" />
+            <div className="min-h-screen bg-deep-bg flex items-center justify-center">
+                <Loader2 className="w-10 h-10 text-accent-primary animate-spin" />
             </div>
         );
     }
@@ -552,14 +560,14 @@ const App: React.FC = () => {
             <div className="min-h-screen flex items-center justify-center bg-deep-bg text-white p-4">
                 <div className="max-w-md w-full text-center space-y-8 animate-in fade-in zoom-in duration-500">
                     <div className="flex justify-center">
-                        <div className="w-20 h-20 bg-gradient-to-br from-violet-600 to-cyan-500 rounded-3xl flex items-center justify-center shadow-[0_0_50px_rgba(139,92,246,0.3)]">
-                            <Sparkles className="w-10 h-10 text-white" />
+                        <div className="w-20 h-20 bg-gradient-to-br from-accent-primary to-accent-secondary rounded-3xl flex items-center justify-center shadow-[0_0_50px_rgba(249,115,22,0.3)]">
+                            <Sparkles className="w-10 h-10 text-black" />
                         </div>
                     </div>
 
                     <div className="space-y-4">
-                        <h1 className="text-3xl font-black uppercase tracking-tight">Acceso Pro Requerido</h1>
-                        <p className="text-neutral-400 leading-relaxed">
+                        <h1 className="text-3xl font-black uppercase tracking-tight text-bone-white">Acceso Pro Requerido</h1>
+                        <p className="text-neutral-400 leading-relaxed font-medium">
                             Para usar los modelos avanzados de generación de imágenes con texto perfecto (Gemini 3 Pro), necesitas conectar tu API Key de Google AI Studio.
                         </p>
                     </div>
@@ -573,546 +581,350 @@ const App: React.FC = () => {
             </div>
         );
     }
-
     return (
-        <div className="min-h-screen flex flex-col md:flex-row bg-deep-bg text-white selection:bg-violet-500/30 font-modern">
+        <div className="min-h-screen flex flex-col md:flex-row bg-deep-bg text-bone-white selection:bg-accent-primary/30 font-modern">
 
-            {/* Sidebar */}
-            <aside className="w-full md:w-[450px] border-r border-white/5 p-6 md:p-8 flex flex-col gap-8 bg-deep-surface/40 backdrop-blur-3xl h-auto md:h-screen md:sticky md:top-0 overflow-y-auto no-scrollbar z-50">
-                <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-violet-600 to-cyan-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-violet-600/20">
-                            <Sparkles className="w-7 h-7 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="text-2xl font-black uppercase tracking-tighter leading-none text-white font-brand">NovaAds <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400">AI</span></h1>
-                            <p className="text-xs text-neutral-400 font-bold tracking-widest mt-1">CREATIVE STUDIO PRO</p>
-                        </div>
+            {/* Sidebar Pomelli Style */}
+            <aside className="w-[80px] md:w-[260px] border-r border-white/5 py-8 md:px-6 flex flex-col gap-8 bg-deep-surface/40 h-screen sticky top-0 z-50 transition-all">
+                <div className="flex items-center justify-center md:justify-start gap-4 mb-2">
+                    <div className="w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br from-accent-primary to-accent-secondary rounded-xl flex items-center justify-center shadow-lg shadow-accent-primary/20 shrink-0">
+                        <Sparkles className="w-5 h-5 md:w-6 md:h-6 text-black" />
                     </div>
+                    <div className="hidden md:block">
+                        <h1 className="text-xl font-black uppercase tracking-tighter leading-none text-bone-white font-brand">NovaAds <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent-primary to-accent-secondary">AI</span></h1>
+                        <p className="text-[10px] text-neutral-400 font-bold tracking-widest mt-1">EXPERIMENT</p>
+                    </div>
+                </div>
+
+                {/* Navigation Menu */}
+                <div className="flex flex-col gap-2 flex-1 mt-4">
+                    <button onClick={() => setSidebarMode('brands')} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'brands' ? 'bg-white/10 text-bone-white shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
+                        <Settings className="w-5 h-5 shrink-0" />
+                        <span className="text-xs font-bold uppercase tracking-widest hidden md:block">Business DNA</span>
+                    </button>
+                    <button onClick={() => { setSidebarMode('create'); setProject(null); }} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'create' ? 'bg-accent-primary/20 text-accent-primary shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
+                        <Sparkles className="w-5 h-5 shrink-0" />
+                        <span className="text-xs font-bold uppercase tracking-widest hidden md:block">Campaigns</span>
+                    </button>
+                    <button onClick={() => setSidebarMode('assets')} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'assets' ? 'bg-white/10 text-bone-white shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
+                        <Layers className="w-5 h-5 shrink-0" />
+                        <span className="text-xs font-bold uppercase tracking-widest hidden md:block">Photoshoot</span>
+                    </button>
+                    <button onClick={() => setSidebarMode('history')} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'history' ? 'bg-white/10 text-bone-white shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
+                        <History className="w-5 h-5 shrink-0" />
+                        <span className="text-xs font-bold uppercase tracking-widest hidden md:block">History</span>
+                    </button>
+                    <button onClick={() => setSidebarMode('winners')} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'winners' ? 'bg-white/10 text-bone-white shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
+                        <Crown className="w-5 h-5 shrink-0" />
+                        <span className="text-xs font-bold uppercase tracking-widest hidden md:block">Winners</span>
+                    </button>
                 </div>
 
                 {/* User Profile & Credits */}
-                <div className="p-4 bg-white/[0.03] border border-white/5 rounded-2xl flex items-center justify-between">
+                <div className="mt-auto md:px-4 md:py-3 bg-white/[0.03] border border-white/5 rounded-2xl flex items-center justify-center md:justify-between group cursor-pointer hover:bg-white/[0.05] transition-all" onClick={() => signOut()}>
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-500/20 to-cyan-500/20 flex items-center justify-center border border-white/10 uppercase font-black text-xs text-violet-400">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-accent-primary/20 to-accent-secondary/20 flex items-center justify-center border border-white/10 uppercase font-black text-xs text-accent-primary shrink-0">
                             {user?.email?.[0]}
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-black tracking-widest text-neutral-500 uppercase">Créditos Disponibles</span>
-                            <span className="text-sm font-black text-white">{profile?.credits ?? 0} / 50</span>
+                        <div className="hidden md:flex flex-col">
+                            <span className="text-[10px] font-black tracking-widest text-neutral-500 uppercase">Credits</span>
+                            <span className="text-sm font-black text-bone-white">{profile?.credits ?? 0}</span>
                         </div>
                     </div>
-                    <button onClick={() => signOut()} className="p-2 hover:bg-white/5 rounded-lg text-neutral-500 hover:text-red-400 transition-all">
-                        <XCircle className="w-5 h-5" />
-                    </button>
+                    <XCircle className="hidden md:block w-4 h-4 text-neutral-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all" />
                 </div>
-
-                {/* Sidebar Tabs - iOS Segment Control Style */}
-                <div className="flex bg-black/50 p-1.5 rounded-2xl border border-white/5 backdrop-blur-md">
-                    <button
-                        onClick={() => setSidebarMode('create')}
-                        className={`flex-1 py-2 rounded-xl text-[10px] font-black flex flex-col items-center justify-center gap-1 transition-all ${sidebarMode === 'create' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-neutral-500 hover:text-white'}`}
-                    >
-                        <Sparkles className="w-4 h-4" /> CREAR
-                    </button>
-                    <button
-                        onClick={() => setSidebarMode('brands')}
-                        className={`flex-1 py-2 rounded-xl text-[10px] font-black flex flex-col items-center justify-center gap-1 transition-all ${sidebarMode === 'brands' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-neutral-500 hover:text-white'}`}
-                    >
-                        <Settings className="w-4 h-4" /> MARCAS
-                    </button>
-                    <button
-                        onClick={() => setSidebarMode('assets')}
-                        className={`flex-1 py-2 rounded-xl text-[10px] font-black flex flex-col items-center justify-center gap-1 transition-all ${sidebarMode === 'assets' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-neutral-500 hover:text-white'}`}
-                    >
-                        <Layers className="w-4 h-4" /> ACTIVOS
-                    </button>
-                    <button
-                        onClick={() => setSidebarMode('history')}
-                        className={`flex-1 py-2 rounded-xl text-[10px] font-black flex flex-col items-center justify-center gap-1 transition-all ${sidebarMode === 'history' ? 'bg-white/10 text-white shadow-lg border border-white/10' : 'text-neutral-500 hover:text-white'}`}
-                    >
-                        <History className="w-4 h-4" /> HISTORIA
-                    </button>
-                    <button
-                        onClick={() => setSidebarMode('winners')}
-                        className={`flex-1 py-2 rounded-xl text-[10px] font-black flex flex-col items-center justify-center gap-1 transition-all ${sidebarMode === 'winners' ? 'bg-gradient-to-r from-violet-600 to-cyan-500 text-white shadow-lg border border-transparent' : 'text-neutral-500 hover:text-white'}`}
-                    >
-                        <Crown className="w-4 h-4" /> WINNERS
-                    </button>
-                </div>
-
-                {sidebarMode === 'create' ? (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
-
-                        {/* Brand Context Section */}
-                        <div className="bg-white/[0.02] p-5 rounded-3xl border border-white/5 space-y-5 backdrop-blur-sm">
-                            <div className="flex items-center gap-3 mb-1">
-                                <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-gradient-to-br from-violet-500/20 to-cyan-500/20 border border-white/5">
-                                    <Target className="w-4 h-4 text-cyan-400" />
-                                </div>
-                                <label className="text-xs font-black uppercase tracking-widest text-neutral-200">Contexto de Marca</label>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Nombre de la Marca</label>
-                                    <input
-                                        type="text"
-                                        value={brandContext.name}
-                                        onChange={(e) => setBrandContext({ ...brandContext, name: e.target.value })}
-                                        placeholder="Ej: Mi Agencia, Nike, Apple..."
-                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all placeholder:text-neutral-700"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Nicho / Industria</label>
-                                    <input
-                                        type="text"
-                                        value={brandContext.niche}
-                                        onChange={(e) => setBrandContext({ ...brandContext, niche: e.target.value })}
-                                        placeholder="Ej: Fitness, Real Estate, SaaS..."
-                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all placeholder:text-neutral-700"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Público Objetivo</label>
-                                    <input
-                                        type="text"
-                                        value={brandContext.targetAudience}
-                                        onChange={(e) => setBrandContext({ ...brandContext, targetAudience: e.target.value })}
-                                        placeholder="Ej: Emprendedores de 25-40 años..."
-                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all placeholder:text-neutral-700"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Tono de Voz</label>
-                                    <select
-                                        value={brandContext.tone}
-                                        onChange={(e) => setBrandContext({ ...brandContext, tone: e.target.value })}
-                                        className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all text-neutral-300"
-                                    >
-                                        <option value="Profesional y Persuasivo">👔 Profesional y Persuasivo</option>
-                                        <option value="Disruptivo y Agresivo">⚡ Disruptivo y Agresivo</option>
-                                        <option value="Cercano y Amigable">🤝 Cercano y Amigable</option>
-                                        <option value="Lujoso y Exclusivo">💎 Lujoso y Exclusivo</option>
-                                        <option value="Divertido e Irreverente">😜 Divertido e Irreverente</option>
-                                        <option value="Urgencia y Escasez (FOMO)">⏳ Urgencia y Escasez (FOMO)</option>
-                                        <option value="Educativo y Autoridad">🎓 Educativo y Autoridad</option>
-                                        <option value="Inspiracional y Emotivo">✨ Inspiracional y Emotivo</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                                <div className="flex flex-col gap-1">
-                                    <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Idea o Copy Preparado</label>
-                                    <span className="text-[9px] text-neutral-500 font-bold uppercase tracking-tighter">Tip: Si ya tienes tu copy, pégalo aquí y usa "TEXTO IA" para grabarlo en la imagen.</span>
-                                </div>
-                                <button
-                                    onClick={handleEnhancePrompt}
-                                    disabled={isEnhancingPrompt || !prompt}
-                                    className="text-xs flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition-colors font-bold uppercase tracking-wider px-3 py-1 rounded-full hover:bg-cyan-500/10"
-                                >
-                                    {isEnhancingPrompt ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                                    {isEnhancingPrompt ? "Optimizar" : "Mejorar"}
-                                </button>
-                            </div>
-                            <textarea
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                placeholder="Escribe tu idea o pega directamente el texto que quieres que aparezca en la imagen (ej: '5 Tips para vender más')..."
-                                className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-5 text-base focus:ring-1 focus:ring-cyan-500/50 outline-none transition-all resize-none placeholder:text-neutral-600 font-medium leading-relaxed"
-                            />
-                        </div>
-
-                        <div className="space-y-3">
-                            <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Referencia de Personaje</label>
-                            <div
-                                onClick={() => fileInputRef.current?.click()}
-                                className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all group ${refImage ? 'bg-violet-500/10 border-violet-500/50' : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.04]'}`}
-                            >
-                                <div className={`w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center border border-white/10 ${refImage ? 'bg-violet-500/20' : 'bg-black/50 text-neutral-500'}`}>
-                                    {refImage ? <img src={refImage} className="w-full h-full object-cover" alt="Ref" /> : <User className="w-5 h-5" />}
-                                </div>
-                                <div className="flex-1 overflow-hidden">
-                                    <p className={`text-sm font-bold truncate ${refImage ? 'text-violet-300' : 'text-neutral-300 group-hover:text-white'}`}>
-                                        {refImage ? "Imagen Cargada" : "Subir Foto (Tu Cara/Modelo)"}
-                                    </p>
-                                    <p className="text-[10px] text-neutral-500 mt-0.5 uppercase font-black tracking-tighter">La IA usará este rostro para los visuales</p>
-                                </div>
-                                {refImage && (
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setRefImage(null); }}
-                                        className="p-1 hover:bg-red-500/20 rounded-md text-red-400 transition-colors"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                )}
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={handleRefImageUpload}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Referencia de Estilo Visual</label>
-                            <div
-                                onClick={() => designInputRef.current?.click()}
-                                className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all group ${designReference ? 'bg-cyan-500/10 border-cyan-500/50' : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.04]'}`}
-                            >
-                                <div className={`w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center border border-white/10 ${designReference ? 'bg-cyan-500/20' : 'bg-black/50 text-neutral-500'}`}>
-                                    {designReference ? <img src={designReference} className="w-full h-full object-cover" alt="Design Ref" /> : <Palette className="w-5 h-5" />}
-                                </div>
-                                <div className="flex-1 overflow-hidden">
-                                    <p className={`text-sm font-bold truncate ${designReference ? 'text-cyan-300' : 'text-neutral-300 group-hover:text-white'}`}>
-                                        {designReference ? "Estilo Cargado" : "Subir Referencia (Branding/Diseño)"}
-                                    </p>
-                                    <p className="text-[10px] text-neutral-500 mt-0.5 uppercase font-black tracking-tighter">La IA imitará la tipografía y colores de esta imagen</p>
-                                </div>
-                                {designReference && (
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setDesignReference(null); }}
-                                        className="p-1 hover:bg-red-500/20 rounded-md text-red-400 transition-colors"
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </button>
-                                )}
-                                <input
-                                    type="file"
-                                    ref={designInputRef}
-                                    className="hidden"
-                                    accept="image/*"
-                                    onChange={handleDesignRefUpload}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-3">
-                            <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Base de Conocimiento</label>
-                            <div
-                                onClick={() => docInputRef.current?.click()}
-                                className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all group ${knowledgeBase ? 'bg-violet-500/10 border-violet-500/50' : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.04]'}`}
-                            >
-                                <div className={`p-3 rounded-lg ${knowledgeBase ? 'bg-violet-500/20' : 'bg-black/50'}`}>
-                                    {knowledgeBase ? <Check className="w-5 h-5 text-violet-400" /> : <FileText className="w-5 h-5 text-neutral-400" />}
-                                </div>
-                                <div className="flex-1 overflow-hidden">
-                                    <p className={`text-sm font-bold truncate ${knowledgeBase ? 'text-violet-300' : 'text-neutral-300 group-hover:text-white'}`}>
-                                        {kbFileName || "Subir Documento (PDF/TXT)"}
-                                    </p>
-                                    <p className="text-xs text-neutral-500 mt-0.5">Contexto Extra para la IA.</p>
-                                </div>
-                                <input
-                                    type="file"
-                                    ref={docInputRef}
-                                    className="hidden"
-                                    accept=".txt,.md,.json,.csv,.pdf,.doc,.docx"
-                                    onChange={handleKnowledgeBaseUpload}
-                                />
-                            </div>
-                        </div>
-
-
-
-                        {/* Controls Grid */}
-                        <div className="grid grid-cols-2 gap-6">
-                            {/* Format */}
-                            <div className="space-y-3 col-span-2">
-                                <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Formato</label>
-                                <div className="grid grid-cols-3 gap-3">
-                                    {(['1:1', '3:4', '9:16'] as AspectRatio[]).map(r => (
-                                        <button key={r} onClick={() => setAspectRatio(r)} className={`py-3 px-2 rounded-xl border text-sm font-bold transition-all ${aspectRatio === r ? 'bg-white text-black border-white shadow-lg' : 'border-white/10 text-neutral-500 hover:bg-white/5 hover:text-white'}`}>{r}</button>
-                                    ))}
-                                </div>
-                            </div>
-
-
-
-                            {/* Generation Mode */}
-                            <div className="space-y-3 col-span-2">
-                                <label className="text-xs font-black uppercase tracking-widest text-neutral-400 flex justify-between items-center">
-                                    Tipo de Contenido
-                                </label>
-                                <div className="grid grid-cols-3 gap-2 bg-neutral-900/50 p-1.5 rounded-2xl border border-white/5">
-                                    <button onClick={() => { setGenMode('single-image'); setSlideCount(1); }} className={`py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${genMode === 'single-image' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}>
-                                        <ImageIcon className="w-4 h-4" />
-                                        SINGLE
-                                    </button>
-                                    <button onClick={() => { setGenMode('carousel'); setSlideCount(6); }} className={`py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${genMode === 'carousel' ? 'bg-white text-black shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}>
-                                        <Copy className="w-4 h-4" />
-                                        CARRUSEL
-                                    </button>
-                                    <button onClick={() => { setGenMode('angles-batch'); setSlideCount(6); }} className={`py-3 rounded-xl text-[10px] font-black transition-all flex flex-col items-center gap-1.5 ${genMode === 'angles-batch' ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg' : 'text-neutral-500 hover:text-neutral-300'}`}>
-                                        <Grid className="w-4 h-4" />
-                                        VOLUMEN
-                                    </button>
-                                </div>
-                                {/* Slide Count Selector */}
-                                {genMode !== 'single-image' && (
-                                    <div className="mt-3 space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500">
-                                            {genMode === 'carousel' ? `Cantidad de Slides: ${slideCount}` : `Variaciones: ${slideCount}`}
-                                        </label>
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                onClick={() => setSlideCount(prev => Math.max(genMode === 'angles-batch' ? 3 : 2, prev - 1))}
-                                                className="w-8 h-8 rounded-lg border border-white/10 bg-neutral-800/50 flex items-center justify-center text-neutral-300 hover:bg-neutral-700 transition-all"
-                                            >
-                                                <Minus className="w-3 h-3" />
-                                            </button>
-                                            <div className="flex-1 flex gap-1">
-                                                {(genMode === 'carousel'
-                                                    ? [2, 3, 4, 5, 6, 8, 10]
-                                                    : [3, 4, 5, 6]
-                                                ).map(n => (
-                                                    <button
-                                                        key={n}
-                                                        onClick={() => setSlideCount(n)}
-                                                        className={`flex-1 py-1.5 rounded-lg text-[11px] font-black transition-all ${slideCount === n
-                                                            ? 'bg-yellow-500 text-black'
-                                                            : 'bg-neutral-800/50 text-neutral-500 hover:text-white hover:bg-neutral-700'
-                                                            }`}
-                                                    >
-                                                        {n}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            <button
-                                                onClick={() => setSlideCount(prev => Math.min(genMode === 'angles-batch' ? 6 : 10, prev + 1))}
-                                                className="w-8 h-8 rounded-lg border border-white/10 bg-neutral-800/50 flex items-center justify-center text-neutral-300 hover:bg-neutral-700 transition-all"
-                                            >
-                                                <Plus className="w-3 h-3" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Visual Style Selector - Hidden in Volume Mode */}
-                        <div className={`space-y-3 transition-all duration-500 relative ${genMode === 'angles-batch' ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
-                            <label className="text-xs font-black uppercase tracking-widest text-neutral-400 flex items-center justify-between">
-                                Estilo Visual
-                                {genMode === 'angles-batch' && (
-                                    <span className="text-[9px] bg-purple-500 text-white px-2 py-0.5 rounded-full animate-pulse">MODO TEST ACTIVADO</span>
-                                )}
-                            </label>
-
-                            {genMode === 'angles-batch' ? (
-                                <div className="bg-gradient-to-br from-purple-900/40 to-blue-900/40 border border-purple-500/30 p-4 rounded-2xl space-y-2">
-                                    <div className="flex items-center gap-2 text-purple-200">
-                                        <Zap className="w-4 h-4" />
-                                        <p className="text-[10px] font-black uppercase tracking-widest">Estilos Disruptivos Activados</p>
-                                    </div>
-                                    <p className="text-[9px] text-neutral-400 font-medium leading-relaxed uppercase tracking-tighter">
-                                        En el modo <span className="text-white">VOLUMEN</span>, la IA generará estilos 100% creativos y diferentes entre sí para testear cuál funciona mejor. No es necesario elegir un estilo manual.
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-2 gap-3 relative">
-                                    {/* Hover Preview Card */}
-                                    {hoveredStyle && STYLE_CONFIGS[hoveredStyle] && (
-                                        <div className="absolute bottom-full left-0 mb-4 w-72 p-3 bg-neutral-950/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.7)] z-[100] animate-in fade-in slide-in-from-bottom-3 duration-200 pointer-events-none transform origin-bottom">
-                                            <div className="relative aspect-video w-full rounded-lg overflow-hidden mb-3 border border-white/10">
-                                                <img src={STYLE_CONFIGS[hoveredStyle].preview} className="w-full h-full object-cover" alt="" />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent" />
-                                                <div className="absolute bottom-3 left-3 right-3">
-                                                    <span className="text-xs font-black uppercase tracking-widest text-white block mb-0.5">{STYLE_CONFIGS[hoveredStyle].name}</span>
-                                                </div>
-                                            </div>
-                                            <p className="text-[10px] text-neutral-300 leading-relaxed px-1 font-medium italic">
-                                                "{STYLE_CONFIGS[hoveredStyle].desc}"
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {(Object.keys(STYLE_CONFIGS) as VisualStyle[]).map(s => (
-                                        <button
-                                            key={s}
-                                            onClick={() => setStyle(s)}
-                                            onMouseEnter={() => setHoveredStyle(s)}
-                                            onMouseLeave={() => setHoveredStyle(null)}
-                                            className={`relative py-3 px-2 rounded-xl border text-[10px] font-black transition-all uppercase tracking-tighter ${style === s ? 'bg-white text-black border-white shadow-lg scale-[1.02]' : 'border-white/5 text-neutral-500 hover:bg-white/5 hover:text-white'}`}
-                                        >
-                                            {STYLE_CONFIGS[s].name}
-                                            {s === 'auto' && <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[6px] px-1 py-0.5 rounded-full animate-pulse">RECOMENDADO</span>}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-
-                        {error && (
-                            <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-xl flex items-start gap-4 animate-in fade-in slide-in-from-top-2">
-                                <AlertCircle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
-                                <div>
-                                    <p className="text-sm font-bold text-red-200 uppercase">Error de Generación</p>
-                                    <p className="text-xs text-red-300 mt-1 leading-relaxed">{error}</p>
-                                </div>
-                            </div>
-                        )}
-
-                        <button
-                            onClick={handleGenerate}
-                            disabled={status !== 'idle' && status !== 'done' && status !== 'error'}
-                            className="w-full py-5 bg-gradient-to-r from-violet-600 to-cyan-500 hover:from-violet-500 hover:to-cyan-400 disabled:opacity-50 rounded-2xl font-black text-white text-base tracking-widest flex items-center justify-center gap-3 transition-all shadow-2xl shadow-violet-500/20 group uppercase transform hover:scale-[1.01] active:scale-[0.99] border border-white/10 overflow-hidden relative"
-                        >
-                            <div className="absolute inset-0 bg-white/10 origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-out"></div>
-                            <div className="relative z-10 flex items-center gap-3">
-                                {status === 'idle' || status === 'done' || status === 'error' ? 'GENERAR CAMPAÑA' : <><Loader2 className="w-6 h-6 animate-spin" /> PROCESANDO...</>}
-                            </div>
-                        </button>
-                    </div>
-                ) : sidebarMode === 'history' ? (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 h-full overflow-y-auto no-scrollbar">
-                        {history.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-64 text-center p-8 border border-dashed border-white/10 rounded-2xl">
-                                <History className="w-8 h-8 text-neutral-600 mb-4" />
-                                <p className="text-sm font-bold text-neutral-500">Sin historial aún</p>
-                                <p className="text-xs text-neutral-600 mt-1">Genera tu primera campaña para verla aquí.</p>
-                            </div>
-                        ) : (
-                            history.map((h) => (
-                                <div
-                                    key={h.id}
-                                    onClick={() => loadProject(h)}
-                                    className={`group relative p-4 rounded-2xl border transition-all cursor-pointer hover:scale-[1.02] ${project?.id === h.id ? 'bg-white/10 border-white/30 shadow-lg' : 'bg-neutral-900/50 border-white/5 hover:bg-neutral-800'}`}
-                                >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className={`px-2 py-1 rounded text-[10px] font-black uppercase ${h.mode === 'angles-batch' ? 'bg-purple-900/40 text-purple-300' : 'bg-neutral-700 text-neutral-300'}`}>
-                                            {h.mode === 'angles-batch' ? 'Volumen' : 'Carrusel'}
-                                        </span>
-                                        <span className="text-[10px] text-neutral-500 font-mono">
-                                            {new Date(h.createdAt || Date.now()).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <h3 className="text-sm font-bold text-white leading-tight mb-2 line-clamp-2">{h.title}</h3>
-                                    <div className="flex items-center gap-2 text-[10px] text-neutral-500 mb-3">
-                                        <span className="capitalize">{h.visualStyle}</span>
-                                        <span>•</span>
-                                        <span>{h.aspectRatio}</span>
-                                    </div>
-
-                                    <button
-                                        onClick={(e) => deleteProject(h.id, e)}
-                                        className="absolute top-4 right-4 p-2 text-neutral-600 hover:text-red-400 hover:bg-red-900/20 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            ))
-                        )}
-
-                        {history.length > 0 && (
-                            <div className="p-3 bg-yellow-500/5 rounded-xl border border-yellow-500/10 mt-4">
-                                <div className="flex gap-2 items-start">
-                                    <AlertCircle className="w-4 h-4 text-yellow-500/50 mt-0.5 shrink-0" />
-                                    <p className="text-[10px] text-yellow-500/50 leading-relaxed">
-                                        Solo se guardan los últimos 5 proyectos localmente para optimizar el rendimiento.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                ) : sidebarMode === 'winners' ? (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 h-full overflow-y-auto no-scrollbar pb-10">
-                        {history.flatMap(p => (p.slides || []).filter(s => s.isWinner).map(s => ({ ...s, projectId: p.id, projectTitle: p.title }))).length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-64 text-center p-8 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
-                                <Crown className="w-8 h-8 text-neutral-600 mb-4" />
-                                <p className="text-sm font-bold text-neutral-500">No hay Winners aún</p>
-                                <p className="text-xs text-neutral-600 mt-1">Marca tus mejores diseños con la corona para guardarlos aquí.</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 gap-4">
-                                {history.flatMap(p => (p.slides || []).filter(s => s.isWinner).map(s => ({ ...s, projectId: p.id, projectTitle: p.title, visualStyle: p.visualStyle, aspectRatio: p.aspectRatio, fullProject: p }))).map((s, idx) => (
-                                    <div key={`${s.projectId}-${idx}`} onClick={() => loadProject(s.fullProject)} className="group relative bg-white/[0.03] border border-white/5 p-3 rounded-2xl hover:bg-white/[0.06] transition-all overflow-hidden cursor-pointer backdrop-blur-md">
-                                        <div className="aspect-square w-full rounded-xl overflow-hidden mb-3 bg-black relative">
-                                            {s.backgroundImageUrl ? <img src={s.backgroundImageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <div className="w-full h-full bg-deep-surface flex items-center justify-center"><ImageIcon className="w-6 h-6 text-neutral-600" /></div>}
-                                            <div className="absolute top-2 right-2 p-1.5 bg-gradient-to-br from-violet-600 to-cyan-500 rounded-lg shadow-lg">
-                                                <Crown className="w-3 h-3 text-white fill-white" />
-                                            </div>
-                                        </div>
-                                        <h4 className="text-xs font-bold text-white line-clamp-1">{s.headline.replace(/\*/g, '')}</h4>
-                                        <p className="text-[10px] text-neutral-500 mt-1 font-bold tracking-widest">{s.projectTitle}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                ) : sidebarMode === 'brands' ? (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 h-full overflow-y-auto no-scrollbar pb-10">
-                        <div className="flex flex-col items-center justify-center h-64 text-center p-8 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
-                            <div className="w-12 h-12 bg-violet-500/20 rounded-xl flex items-center justify-center mb-4">
-                                <Briefcase className="w-6 h-6 text-violet-400" />
-                            </div>
-                            <p className="text-sm font-bold text-neutral-300">Próximamente: Brand Kits</p>
-                            <p className="text-xs text-neutral-500 mt-2 leading-relaxed">Guarda la paleta, tipografías y tono de voz de múltiples marcas para cambiar entre ellas fácilmente.</p>
-                        </div>
-                    </div>
-                ) : sidebarMode === 'assets' ? (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 h-full overflow-y-auto no-scrollbar pb-10">
-                        <div className="flex flex-col items-center justify-center h-64 text-center p-8 border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
-                            <div className="w-12 h-12 bg-cyan-500/20 rounded-xl flex items-center justify-center mb-4">
-                                <FolderHeart className="w-6 h-6 text-cyan-400" />
-                            </div>
-                            <p className="text-sm font-bold text-neutral-300">Próximamente: Asset Library</p>
-                            <p className="text-xs text-neutral-500 mt-2 leading-relaxed">Sube logos, patrones y recursos visuales para integrarlos libremente en tus campañas.</p>
-                        </div>
-                    </div>
-                ) : null}
             </aside>
 
             {/* Area de Visualización */}
-            <main className="flex-1 overflow-y-auto bg-deep-bg flex flex-col items-center p-4 md:p-12 gap-6 md:gap-10 relative">
-                <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-violet-900/20 via-cyan-900/10 to-transparent pointer-events-none" />
+            <main className="flex-1 overflow-y-auto bg-deep-bg relative">
+                <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-accent-primary/5 via-accent-secondary/5 to-transparent pointer-events-none" />
 
                 {!project ? (
-                    <div className="flex-1 flex flex-col items-center justify-center max-w-4xl text-center space-y-12 animate-in fade-in zoom-in duration-700 z-10 w-full">
+                    <div className="flex flex-col items-center pt-16 md:pt-24 px-4 max-w-5xl mx-auto w-full z-10 animate-in fade-in zoom-in duration-700 min-h-screen">
 
-                        {/* Collage Hero */}
-                        <div className="relative w-full max-w-2xl h-[400px] perspective-1000">
-                            {/* Background Glow */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-600/10 blur-[150px] rounded-full pointer-events-none" />
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/4 -translate-y-1/3 w-[400px] h-[400px] bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none" />
+                        {sidebarMode === 'brands' ? (
+                            <div className="w-full max-w-2xl bg-deep-surface/80 border border-white/5 p-8 rounded-[32px] space-y-6 shadow-2xl backdrop-blur-xl">
+                                <h2 className="text-2xl font-black uppercase text-bone-white tracking-widest flex items-center gap-3"><Settings className="w-6 h-6 text-accent-primary" /> Business DNA</h2>
+                                <p className="text-neutral-400 text-sm">Configura la identidad de tu marca para que la IA la tome como contexto al generar copies e imágenes.</p>
 
-                            {/* Image Grid */}
-                            <div className="grid grid-cols-3 gap-4 transform rotate-x-12 scale-90 hover:scale-100 transition-transform duration-700 ease-out">
-                                {[
-                                    "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop",
-                                    "https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2000&auto=format&fit=crop",
-                                    "https://images.unsplash.com/photo-1558655146-d09347e92766?q=80&w=2000&auto=format&fit=crop",
-                                    "https://images.unsplash.com/photo-1618005192384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop",
-                                    "https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?q=80&w=2564&auto=format&fit=crop",
-                                    "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2000&auto=format&fit=crop"
-                                ].map((src, i) => (
-                                    <div key={i} className={`relative rounded-xl overflow-hidden shadow-2xl border border-white/5 group ${i % 2 === 0 ? 'translate-y-8' : '-translate-y-8'} ring-1 ring-white/10 p-1 bg-white/[0.02]`}>
-                                        <div className="absolute inset-0 bg-gradient-to-t from-deep-bg/90 via-transparent to-transparent z-10 rounded-lg pointer-events-none" />
-                                        <img src={src} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 rounded-lg opacity-80 group-hover:opacity-100" referrerPolicy="no-referrer" />
-                                        <div className="absolute bottom-4 left-4 z-20">
-                                            <div className="h-1 w-8 bg-white/50 rounded-full mb-2" />
-                                            <div className="h-1 w-16 bg-white/30 rounded-full" />
+                                <div className="grid grid-cols-1 gap-4 mt-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Nombre de la Marca</label>
+                                        <input
+                                            type="text"
+                                            value={brandContext.name}
+                                            onChange={(e) => setBrandContext({ ...brandContext, name: e.target.value })}
+                                            placeholder="Ej: Mi Agencia, Nike, Apple..."
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-accent-primary/50 outline-none transition-all placeholder:text-neutral-700 text-bone-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Nicho / Industria</label>
+                                        <input
+                                            type="text"
+                                            value={brandContext.niche}
+                                            onChange={(e) => setBrandContext({ ...brandContext, niche: e.target.value })}
+                                            placeholder="Ej: Fitness, Real Estate, SaaS..."
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-accent-primary/50 outline-none transition-all placeholder:text-neutral-700 text-bone-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Público Objetivo</label>
+                                        <input
+                                            type="text"
+                                            value={brandContext.targetAudience}
+                                            onChange={(e) => setBrandContext({ ...brandContext, targetAudience: e.target.value })}
+                                            placeholder="Ej: Emprendedores de 25-40 años..."
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-accent-primary/50 outline-none transition-all placeholder:text-neutral-700 text-bone-white"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Tono de Voz</label>
+                                        <select
+                                            value={brandContext.tone}
+                                            onChange={(e) => setBrandContext({ ...brandContext, tone: e.target.value })}
+                                            className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-accent-primary/50 outline-none transition-all text-bone-white appearance-none"
+                                        >
+                                            <option value="Profesional y Persuasivo">👔 Profesional y Persuasivo</option>
+                                            <option value="Disruptivo y Agresivo">⚡ Disruptivo y Agresivo</option>
+                                            <option value="Cercano y Amigable">🤝 Cercano y Amigable</option>
+                                            <option value="Lujoso y Exclusivo">💎 Lujoso y Exclusivo</option>
+                                            <option value="Divertido e Irreverente">😜 Divertido e Irreverente</option>
+                                            <option value="Urgencia y Escasez (FOMO)">⏳ Urgencia y Escasez (FOMO)</option>
+                                            <option value="Educativo y Autoridad">🎓 Educativo y Autoridad</option>
+                                            <option value="Inspiracional y Emotivo">✨ Inspiracional y Emotivo</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : sidebarMode === 'assets' ? (
+                            <div className="w-full max-w-4xl bg-[#1A1A1A] border border-white/5 p-8 rounded-[24px] shadow-2xl space-y-8">
+                                <h2 className="text-2xl font-black uppercase text-bone-white tracking-widest flex items-center gap-3"><Layers className="w-6 h-6 text-accent-primary" /> Photoshoot & Assets</h2>
+                                <p className="text-neutral-400 text-sm">Sube referencias visuales para la IA (Múltiples permitidas).</p>
+
+                                <div className="space-y-6">
+                                    {/* Brand Aesthetics / Design References Grid */}
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Referencia de Estilo Visual</label>
+                                            <span className="text-[10px] bg-accent-secondary/10 text-accent-secondary px-2 py-1 rounded-md">{designReferences.length} Imágenes</span>
+                                        </div>
+                                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
+                                            {/* Upload Button */}
+                                            <div onClick={() => designInputRef.current?.click()} className="aspect-square bg-deep-surface hover:bg-[#2A2A2A] border border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group">
+                                                <Upload className="w-6 h-6 text-accent-secondary mb-2 group-hover:scale-110 transition-transform" />
+                                                <span className="text-[10px] font-bold text-accent-secondary text-center px-1">Subir Estilos</span>
+                                            </div>
+                                            {/* Images */}
+                                            {designReferences.map((img, idx) => (
+                                                <div key={idx} className="aspect-square rounded-xl overflow-hidden relative group border border-white/10">
+                                                    <img src={img} className="w-full h-full object-cover" alt="Estilo" />
+                                                    <button onClick={(e) => { e.stopPropagation(); setDesignReferences(prev => prev.filter((_, i) => i !== idx)); }} className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-red-500 rounded-md text-white opacity-0 group-hover:opacity-100 transition-all"><X className="w-3 h-3" /></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <input type="file" ref={designInputRef} className="hidden" accept="image/*" multiple onChange={handleDesignRefUpload} />
+                                    </div>
+
+                                    {/* Character References Grid */}
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Referencia de Personaje</label>
+                                            <span className="text-[10px] bg-accent-primary/10 text-accent-primary px-2 py-1 rounded-md">{refImages.length} Imágenes</span>
+                                        </div>
+                                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
+                                            {/* Upload Button */}
+                                            <div onClick={() => fileInputRef.current?.click()} className="aspect-square bg-deep-surface hover:bg-[#2A2A2A] border border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group">
+                                                <Upload className="w-6 h-6 text-accent-primary mb-2 group-hover:scale-110 transition-transform" />
+                                                <span className="text-[10px] font-bold text-accent-primary text-center px-1">Subir Caras</span>
+                                            </div>
+                                            {/* Images */}
+                                            {refImages.map((img, idx) => (
+                                                <div key={idx} className="aspect-square rounded-xl overflow-hidden relative group border border-white/10">
+                                                    <img src={img} className="w-full h-full object-cover" alt="Caras" />
+                                                    <button onClick={(e) => { e.stopPropagation(); setRefImages(prev => prev.filter((_, i) => i !== idx)); }} className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-red-500 rounded-md text-white opacity-0 group-hover:opacity-100 transition-all"><X className="w-3 h-3" /></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleRefImageUpload} />
+                                    </div>
+
+                                    {/* Knowledge Base */}
+                                    <div className="space-y-3 pt-4 border-t border-white/5">
+                                        <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Base de Conocimiento Documental</label>
+                                        <div onClick={() => docInputRef.current?.click()} className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all ${knowledgeBase ? 'bg-green-500/10 border-green-500/50' : 'bg-deep-surface border-white/10'}`}>
+                                            <div className={`p-3 rounded-lg ${knowledgeBase ? 'bg-green-500/20' : 'bg-black/50'}`}>
+                                                {knowledgeBase ? <Check className="w-5 h-5 text-green-400" /> : <FileText className="w-5 h-5 text-neutral-400" />}
+                                            </div>
+                                            <div className="flex-1 overflow-hidden">
+                                                <p className={`text-sm font-bold truncate ${knowledgeBase ? 'text-green-300' : 'text-neutral-300'}`}>{kbFileName || "Subir Documento (PDF/TXT)"}</p>
+                                            </div>
+                                            <input type="file" ref={docInputRef} className="hidden" accept=".txt,.md,.json,.csv,.pdf,.doc,.docx" onChange={handleKnowledgeBaseUpload} />
                                         </div>
                                     </div>
-                                ))}
+                                </div>
                             </div>
-                        </div>
+                        ) : sidebarMode === 'history' || sidebarMode === 'winners' ? (
+                            <div className="w-full">
+                                <h1 className="text-3xl font-black uppercase tracking-tighter text-bone-white mb-8 flex items-center gap-3">
+                                    {sidebarMode === 'history' ? <><History className="w-8 h-8 text-accent-primary" /> History</> : <><Crown className="w-8 h-8 text-yellow-500" /> Winners</>}
+                                </h1>
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                    {history && history.length > 0 ? (
+                                        history.flatMap(p => p.slides.filter(s => sidebarMode === 'winners' ? s.isWinner : true).map(s => ({ ...s, p })))
+                                            .slice(0, 20)
+                                            .map((item, i) => (
+                                                <div key={i} onClick={() => loadProject(item.p)} className="bg-deep-surface border border-white/5 rounded-2xl p-3 cursor-pointer hover:border-white/20 transition-all hover:scale-[1.02] group shadow-xl">
+                                                    <div className="aspect-[3/4] rounded-xl overflow-hidden mb-3 bg-black/50 relative">
+                                                        {item.backgroundImageUrl ? (
+                                                            <img src={item.backgroundImageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-8 h-8 text-neutral-600" /></div>
+                                                        )}
+                                                        {item.isWinner && (
+                                                            <div className="absolute top-2 right-2 p-1.5 bg-gradient-to-br from-yellow-400 to-amber-600 rounded-lg shadow-lg">
+                                                                <Crown className="w-3 h-3 text-black fill-black" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <h4 className="text-sm font-bold truncate text-bone-white">{item.p.title}</h4>
+                                                    <p className="text-xs text-neutral-500 capitalize">{item.p.visualStyle}</p>
+                                                </div>
+                                            ))
+                                    ) : (
+                                        <div className="col-span-full py-16 text-center border border-dashed border-white/10 rounded-3xl text-neutral-500">
+                                            <p>No se encontraron resultados.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            // CREATE / MAIN PROMPT SCREEN
+                            <div className="w-full flex-col items-center flex">
+                                <div className="text-center mb-8 space-y-4">
+                                    <h1 className="text-5xl md:text-6xl text-bone-white font-serif italic mb-2 tracking-tight flex items-center justify-center gap-4">📣 Campañas</h1>
+                                    <p className="text-neutral-400 text-sm md:text-base font-medium">Comienza desde nuestras sugerencias o escribe tu prompt para crear una nueva campaña.</p>
+                                </div>
 
-                        <div className="space-y-6 max-w-xl mx-auto relative z-20">
-                            <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white leading-[0.9] font-brand">
-                                THE FUTURE OF <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400 font-serif italic font-normal text-5xl md:text-7xl">Advertising</span>
-                            </h2>
-                            <p className="text-neutral-400 text-lg leading-relaxed font-medium">
-                                Create massive, premium ad variations with zero effort. <br />
-                                <span className="text-white font-bold">Copywriting + Design engineered for scale.</span>
-                            </p>
-                        </div>
+                                {/* Big Prompt Box */}
+                                <div className="w-full max-w-[800px] bg-deep-surface/90 border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] rounded-[32px] p-6 backdrop-blur-3xl flex flex-col gap-4 relative mt-4">
+                                    <textarea
+                                        value={prompt}
+                                        onChange={(e) => setPrompt(e.target.value)}
+                                        placeholder="Ej: Necesito una landing disruptiva para mi campaña con un copy directo para exterminar curiosos..."
+                                        className="w-full bg-transparent border-none text-bone-white text-lg placeholder:text-neutral-600 focus:ring-0 outline-none resize-none min-h-[140px] font-medium"
+                                    />
+
+                                    {/* Optimization Button (floating inside textarea) */}
+                                    <div className="flex justify-end border-b border-white/5 pb-4">
+                                        <button
+                                            onClick={handleEnhancePrompt}
+                                            disabled={isEnhancingPrompt || !prompt}
+                                            className="text-xs flex items-center gap-2 text-accent-primary hover:text-accent-secondary transition-colors font-bold uppercase tracking-wider px-3 py-1 rounded-full hover:bg-accent-primary/10 disabled:opacity-50"
+                                        >
+                                            {isEnhancingPrompt ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                                            {isEnhancingPrompt ? "Optimizando..." : "Optimizar Prompt"}
+                                        </button>
+                                    </div>
+
+                                    {/* Bottom controls row */}
+                                    <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-2">
+                                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+
+                                            {/* Format Selector */}
+                                            <div className="relative">
+                                                <select value={genMode} onChange={(e) => { setGenMode(e.target.value as GenerationMode); setSlideCount(e.target.value === 'single-image' ? 1 : 6); }} className="bg-black/40 border border-white/5 rounded-full px-4 py-2 text-xs font-bold text-bone-white appearance-none outline-none cursor-pointer pl-4 pr-8 text-center md:text-left transition-all hover:bg-white/5">
+                                                    <option value="single-image">Una Imagen</option>
+                                                    <option value="carousel">Carrusel</option>
+                                                    <option value="angles-batch">Mezcla (Volumen)</option>
+                                                </select>
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                    <ChevronLeft className="w-3 h-3 -rotate-90 text-neutral-500" />
+                                                </div>
+                                            </div>
+
+                                            {/* Style Selector */}
+                                            <div className="relative group">
+                                                <select value={style} onChange={(e) => setStyle(e.target.value as VisualStyle)} className="bg-black/40 border border-white/10 rounded-full px-4 py-2 text-xs font-bold text-bone-white appearance-none outline-none focus:bg-white/10 transition-colors cursor-pointer pl-4 pr-8 uppercase tracking-widest text-center md:text-left hover:bg-white/5">
+                                                    {(Object.keys(STYLE_CONFIGS)).map(s => (
+                                                        <option key={s} value={s} className="bg-deep-surface text-bone-white">{STYLE_CONFIGS[s].name}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                    <ChevronLeft className="w-3 h-3 -rotate-90 text-neutral-400" />
+                                                </div>
+                                            </div>
+
+                                            {/* Aspect Ratio */}
+                                            <div className="relative">
+                                                <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value as AspectRatio)} className="bg-black/40 border border-white/5 rounded-full px-4 py-2 text-xs font-bold text-bone-white appearance-none outline-none cursor-pointer pl-4 pr-8 text-center md:text-left transition-all hover:bg-white/5">
+                                                    <option value="1:1">Feed (1:1)</option>
+                                                    <option value="3:4">Portrait (3:4)</option>
+                                                    <option value="9:16">Story (9:16)</option>
+                                                </select>
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                    <ChevronLeft className="w-3 h-3 -rotate-90 text-neutral-500" />
+                                                </div>
+                                            </div>
+
+                                            {/* Options Pills */}
+                                            {genMode !== 'single-image' && (
+                                                <div className="flex items-center bg-black/40 rounded-full border border-white/5 px-2 py-1.5 h-[34px] ml-1">
+                                                    <span className="text-[11px] font-bold px-2 min-w-[50px] text-center text-bone-white">{slideCount} imgs</span>
+                                                    <div className="flex gap-1 border-l border-white/10 pl-2">
+                                                        <button onClick={() => setSlideCount(prev => Math.max(2, prev - 1))} className="hover:text-accent-primary text-neutral-400 p-0.5"><Minus className="w-3 h-3" /></button>
+                                                        <button onClick={() => setSlideCount(prev => Math.min(10, prev + 1))} className="hover:text-accent-primary text-neutral-400 p-0.5"><Plus className="w-3 h-3" /></button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <button
+                                            onClick={handleGenerate}
+                                            disabled={status !== 'idle' && status !== 'done' && status !== 'error'}
+                                            className="w-full md:w-auto bg-gradient-to-r from-accent-primary to-accent-secondary hover:from-accent-secondary hover:to-accent-primary disabled:opacity-50 text-black px-6 py-3 rounded-full font-black text-sm transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(249,115,22,0.3)] hover:scale-105 active:scale-95 shrink-0"
+                                        >
+                                            {(!status || status === 'idle' || status === 'done' || status === 'error') ? <><Sparkles className="w-4 h-4" /> GENERATE IDEAS</> : <><Loader2 className="w-4 h-4 animate-spin" /> GENERATING...</>}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {error && (
+                                    <div className="mt-8 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-200 text-sm animate-in zoom-in w-full max-w-2xl">
+                                        <AlertCircle className="w-5 h-5 inline-block mr-2" />
+                                        {error}
+                                    </div>
+                                )}
+
+                                {/* Recent Campaigns Grid below the prompt box */}
+                                <div className="w-full max-w-[900px] mt-20 text-left animate-in slide-in-from-bottom-8 duration-700">
+                                    <h3 className="text-lg font-bold text-bone-white mb-6 font-serif px-2">Recent Campaigns</h3>
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {history && history.length > 0 ? (
+                                            history.slice(0, 4).map((proj) => (
+                                                <div key={proj.id} onClick={() => loadProject(proj)} className="bg-deep-surface border border-white/5 rounded-2xl p-3 cursor-pointer hover:border-white/20 transition-all hover:scale-[1.02] group">
+                                                    <div className="aspect-[3/4] rounded-xl overflow-hidden mb-3 bg-black/50 relative">
+                                                        {proj.slides[0]?.backgroundImageUrl ? (
+                                                            <img src={proj.slides[0].backgroundImageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center"><ImageIcon className="w-8 h-8 text-neutral-600" /></div>
+                                                        )}
+                                                        <div className="absolute inset-0 bg-gradient-to-t from-deep-surface via-transparent to-transparent opacity-60 pointer-events-none" />
+                                                        <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded border border-white/10 text-[9px] font-bold text-white uppercase tracking-wider">{proj.visualStyle}</div>
+                                                    </div>
+                                                    <h4 className="text-sm font-bold truncate text-bone-white">{proj.title}</h4>
+                                                    <p className="text-[10px] text-neutral-500 mt-1 tracking-wider uppercase">{new Date(proj.createdAt || Date.now()).toLocaleDateString()}</p>
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <div className="col-span-full py-12 text-center border-2 border-dashed border-white/5 rounded-3xl text-neutral-500 text-sm">
+                                                No recent campaigns found.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="w-full max-w-7xl space-y-8 md:space-y-12 pb-32 z-10 px-2 md:px-0">
@@ -1120,10 +932,10 @@ const App: React.FC = () => {
                         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-white/5 pb-8">
                             <div className="space-y-2">
                                 <div className="flex items-center gap-3">
-                                    <span className={`px-3 py-1 rounded-md text-xs font-black uppercase bg-white text-black`}>{project.intent}</span>
+                                    <span className="px-3 py-1 rounded-md text-xs font-black uppercase bg-white text-black">{project.intent}</span>
                                     {project.mode === 'angles-batch'
                                         ? <span className="text-xs text-purple-400 font-bold uppercase tracking-widest bg-purple-900/20 px-3 py-1 rounded-md border border-purple-500/30">MODO VOLUMEN</span>
-                                        : <span className="text-xs text-neutral-500 font-bold uppercase tracking-widest bg-neutral-900 px-3 py-1 rounded-md border border-white/10">{refImage ? 'CLONED' : `${project.visualStyle}`}</span>
+                                        : <span className="text-xs text-neutral-500 font-bold uppercase tracking-widest bg-neutral-900 px-3 py-1 rounded-md border border-white/10">{refImages.length > 0 ? 'CLONED' : `${project.visualStyle}`}</span>
                                     }
                                 </div>
                                 <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tighter max-w-3xl leading-none mt-2">{project.title}</h2>
@@ -1141,7 +953,7 @@ const App: React.FC = () => {
                                     {isExporting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />} DESCARGAR
                                 </button>
                             </div>
-                        </header>
+                        </header >
 
                         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 md:gap-16">
                             {/* Canvas View */}
@@ -1336,18 +1148,18 @@ const App: React.FC = () => {
                                                         value={videoPrompt}
                                                         onChange={(e) => setVideoPrompt(e.target.value)}
                                                         placeholder="Ej: 'Una cámara lenta acercándose al producto con partículas de luz flotando'..."
-                                                        className="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-sm text-white focus:border-violet-500/50 outline-none resize-none h-32 leading-relaxed"
+                                                        className="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-sm text-bone-white focus:border-accent-primary/50 outline-none resize-none h-32 leading-relaxed"
                                                     />
                                                 </div>
 
                                                 {isVideoGenerating && (
                                                     <div className="space-y-3 p-4 bg-black/40 rounded-2xl border border-white/5 animate-pulse">
                                                         <div className="flex items-center gap-3">
-                                                            <Loader2 className="w-4 h-4 animate-spin text-violet-400" />
-                                                            <span className="text-xs font-bold text-violet-200">{videoProgress}</span>
+                                                            <Loader2 className="w-4 h-4 animate-spin text-accent-primary" />
+                                                            <span className="text-xs font-bold text-accent-primary/80">{videoProgress}</span>
                                                         </div>
                                                         <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-                                                            <div className="h-full bg-violet-500 w-1/2" />
+                                                            <div className="h-full bg-accent-primary w-1/2" />
                                                         </div>
                                                     </div>
                                                 )}
@@ -1403,10 +1215,10 @@ const App: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div >
                 )}
-            </main>
-        </div>
+            </main >
+        </div >
     );
 };
 
