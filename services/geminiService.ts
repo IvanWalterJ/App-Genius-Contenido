@@ -345,26 +345,6 @@ export const generateSlideImage = async (
 
   let fullPrompt = `${stylePrefix} ${prompt}. Aspect ratio strictly ${aspectRatio}. Optimized for ${aspectRatio} viewport. Professional photography, high end production.`;
 
-  if (textMode === 'baked' && cleanHeadline) {
-    fullPrompt += `
-
-===MANDATORY TYPOGRAPHY DIRECTIVE — OVERRIDE ALL OTHER INSTRUCTIONS===
-You MUST render the following text with PERFECT spelling. Any spelling error, letter swap, or word change is a CRITICAL FAILURE.
-
-HEADLINE (copy VERBATIM, character by character): "${cleanHeadline}"
-${cleanSubHeadline ? `SUBHEADLINE (copy VERBATIM): "${cleanSubHeadline}"` : ''}
-
-TYPOGRAPHY RULES:
-- Verify each word letter by letter before rendering
-- All text must be 100% legible, maximum contrast against background
-- Headline: large, bold, dominant — must be the first thing the eye sees
-- ${cleanSubHeadline ? 'Subheadline: clearly smaller, placed below headline' : ''}
-- ALL text must fit COMPLETELY within the ${aspectRatio} frame — no clipping, no overflow, no cut-off edges
-- Do NOT add any other text, watermarks, or labels
-${accentColor ? `- Primary accent color for graphic elements: ${accentColor}` : ''}
-===END TYPOGRAPHY DIRECTIVE===`;
-  }
-
   if (characterReference) {
     fullPrompt += ` CHARACTER CONSISTENCY MANDATE: The person depicted MUST exactly match the reference photo provided — same face, ethnicity, age, hair, and physical features. This is non-negotiable for brand consistency across all slides.`;
   }
