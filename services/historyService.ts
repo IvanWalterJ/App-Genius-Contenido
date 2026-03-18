@@ -10,9 +10,9 @@ const stripImages = (project: AdProject): AdProject => ({
   slides: project.slides.map(s => ({ ...s, backgroundImageUrl: null }))
 });
 
-export const getHistory = (): AdProject[] => {
+export const getHistory = (userId: string = 'default'): AdProject[] => {
   try {
-    const raw = localStorage.getItem(HISTORY_KEY);
+    const raw = localStorage.getItem(`${HISTORY_KEY}_${userId}`);
     return raw ? JSON.parse(raw) : [];
   } catch (e) {
     console.error("Failed to load history", e);
@@ -20,15 +20,17 @@ export const getHistory = (): AdProject[] => {
   }
 };
 
-export const saveToHistory = (project: AdProject): AdProject[] => {
+export const saveToHistory = (project: AdProject, userId: string = 'default'): AdProject[] => {
   try {
-    const current = getHistory();
+    const current = getHistory(userId);
     const filtered = current.filter(p => p.id !== project.id);
     const updated = [project, ...filtered].slice(0, MAX_ITEMS);
+    
+    const key = `${HISTORY_KEY}_${userId}`;
 
     // Try saving with full images first
     try {
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+      localStorage.setItem(key, JSON.stringify(updated));
       return updated;
     } catch {
       // Quota exceeded: keep current project images, strip images from older ones
@@ -42,13 +44,13 @@ export const saveToHistory = (project: AdProject): AdProject[] => {
         console.warn("Still over quota — stripping all images...");
         const allStripped = [stripImages(project), ...filtered.map(stripImages)].slice(0, MAX_ITEMS);
         try {
-          localStorage.setItem(HISTORY_KEY, JSON.stringify(allStripped));
+          localStorage.setItem(key, JSON.stringify(allStripped));
           return allStripped;
         } catch (e) {
           console.error("Critical storage error — clearing history");
           try {
-            localStorage.setItem(HISTORY_KEY, JSON.stringify([project]));
-          } catch { localStorage.removeItem(HISTORY_KEY); }
+            localStorage.setItem(key, JSON.stringify([project]));
+          } catch { localStorage.removeItem(key); }
           return [project];
         }
       }
@@ -59,11 +61,13 @@ export const saveToHistory = (project: AdProject): AdProject[] => {
   }
 };
 
-export const deleteFromHistory = (id: string): AdProject[] => {
-  const current = getHistory();
+
+
+export const deleteFromHistory = (id: string, userId: string = 'default'): AdProject[] => {
+  const current = getHistory(userId);
   const updated = current.filter(p => p.id !== id);
   try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+    localStorage.setItem(`${HISTORY_KEY}_${userId}`, JSON.stringify(updated));
   } catch { /* ignore */ }
   return updated;
 };

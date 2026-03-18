@@ -124,13 +124,7 @@ const App: React.FC = () => {
 
     const [useAiDesign, setUseAiDesign] = useState(true);
 
-    const [brandContext, setBrandContext] = useState<BrandContext>(() => {
-        try {
-            const saved = localStorage.getItem('novaads_brand_context');
-            if (saved) return JSON.parse(saved);
-        } catch {}
-        return { name: '', niche: '', targetAudience: '', tone: 'Profesional y Persuasivo' };
-    });
+    const [brandContext, setBrandContext] = useState<BrandContext>({ name: '', niche: '', targetAudience: '', tone: 'Profesional y Persuasivo' });
 
     const [designReferences, setDesignReferences] = useState<string[]>([]);
 
@@ -163,18 +157,38 @@ const App: React.FC = () => {
             }
         };
         checkKey();
+    }, []);
 
-        // On mount: strip images from old history to free up localStorage quota
-        const existingHistory = getHistory();
+    // Load data specific to the authenticated user
+    useEffect(() => {
+        if (!user) {
+            setHistory([]);
+            setProject(null);
+            setBrandContext({ name: '', niche: '', targetAudience: '', tone: 'Profesional y Persuasivo' });
+            return;
+        }
+
+        // Load Brand DNA
+        try {
+            const savedDNA = localStorage.getItem(`novaads_brand_context_${user.id}`);
+            if (savedDNA) {
+                setBrandContext(JSON.parse(savedDNA));
+            } else {
+                setBrandContext({ name: '', niche: '', targetAudience: '', tone: 'Profesional y Persuasivo' });
+            }
+        } catch {}
+
+        // Load History
+        const existingHistory = getHistory(user.id);
         const strippedHistory = existingHistory.map(p => ({
             ...p,
             slides: p.slides.map(s => ({ ...s, backgroundImageUrl: null as string | null }))
         }));
         try {
-            localStorage.setItem('adgenius_history_v1', JSON.stringify(strippedHistory.slice(0, 3)));
-        } catch { localStorage.removeItem('adgenius_history_v1'); }
+            localStorage.setItem(`adgenius_history_v1_${user.id}`, JSON.stringify(strippedHistory.slice(0, 3)));
+        } catch { localStorage.removeItem(`adgenius_history_v1_${user.id}`); }
         setHistory(strippedHistory);
-    }, []);
+    }, [user]);
 
     const handleConnectKey = async () => {
         const win = window as any;
@@ -564,15 +578,16 @@ const App: React.FC = () => {
 
     // Persist Business DNA to localStorage whenever it changes
     useEffect(() => {
-        try { localStorage.setItem('novaads_brand_context', JSON.stringify(brandContext)); } catch {}
-    }, [brandContext]);
+        if (!user) return;
+        try { localStorage.setItem(`novaads_brand_context_${user.id}`, JSON.stringify(brandContext)); } catch {}
+    }, [brandContext, user]);
 
     // Persist project to history whenever it changes (outside the setProject updater)
     useEffect(() => {
-        if (!project) return;
-        const newHistory = saveToHistory(project);
+        if (!project || !user) return;
+        const newHistory = saveToHistory(project, user.id);
         setHistory(newHistory);
-    }, [project]);
+    }, [project, user]);
 
     const loadProject = (p: AdProject) => {
         setProject(p);
@@ -588,7 +603,8 @@ const App: React.FC = () => {
 
     const deleteProject = (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        const newHistory = deleteFromHistory(id);
+        if (!user) return;
+        const newHistory = deleteFromHistory(id, user.id);
         setHistory(newHistory);
         if (project?.id === id) {
             setProject(null);
