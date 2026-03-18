@@ -28,12 +28,14 @@ const cleanJSON = (text: string) => {
 
 // --- SAFE MODE FALLBACK ---
 const getSafeFallback = (prompt: string, style: string, brand: BrandContext, type: string, slideCount: number = 6): any => {
-  const niche = brand.niche || "tu sector";
+  // Use brand context or extract from prompt as fallback
+  const niche = brand.niche || prompt.split(/\s+/).slice(0, 4).join(' ') || "tu sector";
   const audience = brand.targetAudience || "tu audiencia";
+  const subject = brand.name || niche;
 
   const allSlides = [
     {
-      headline: `ATENCIÓN: *${niche.toUpperCase()}* para ${brand.name || 'ti'}`,
+      headline: `*${subject}*: La solución que necesitas`,
       subHeadline: `Descubre cómo ayudamos a ${audience} a lograr resultados extraordinarios con nuestro método probado.`,
       visualPrompt: `High-end professional atmosphere for ${niche}, professional lighting, premium aesthetic related to ${audience}`,
       layout: "centered",
@@ -286,6 +288,7 @@ export const generateAdCopy = async (
 
   const models = [
     "models/gemini-2.0-flash",
+    "models/gemini-2.5-flash-preview-04-17",
     "models/gemini-1.5-flash",
     "models/gemini-1.5-pro"
   ];
@@ -299,10 +302,16 @@ export const generateAdCopy = async (
           contents: [{ parts: contentParts }],
           config: { responseMimeType: "application/json", responseSchema: schema }
         }),
-        25000,
+        30000,
         `Copy Generation Timeout: ${model}`
       );
-      return JSON.parse(cleanJSON(response.text || '{}'));
+      const parsed = JSON.parse(cleanJSON(response.text || '{}'));
+      // Validate the response has actual slides with real content
+      if (parsed?.slides?.length > 0 && parsed.slides[0]?.headline && !parsed.slides[0].headline.includes('TU SECTOR')) {
+        return parsed;
+      }
+      // If slides are empty or generic, try next model
+      console.warn(`${model} returned generic/empty slides, trying next model...`);
     } catch (err: any) {
       console.warn(`${model} copy gen failed:`, err.message);
     }
@@ -337,11 +346,17 @@ export const generateSlideImage = async (
   let fullPrompt = `${stylePrefix} ${prompt}. Aspect ratio strictly ${aspectRatio}. Optimized for ${aspectRatio} viewport. Professional photography, high end production.`;
 
   if (textMode === 'baked' && cleanHeadline) {
-    fullPrompt += ` STRICTURE: Render the EXACT text "${cleanHeadline}" on the image. DO NOT add any other words, letters, or symbols. DO NOT change the spelling. Fidelity is mandatory.`;
-    if (cleanSubHeadline) fullPrompt += ` Small secondary text: "${cleanSubHeadline}".`;
-    if (accentColor) fullPrompt += ` Visual accent color: ${accentColor}.`;
-    if (headlineFont) fullPrompt += ` Modern typography style.`;
-    fullPrompt += ` Ensure all text is perfectly legible, properly balanced, and fits within the ${aspectRatio} boundaries without clipping.`;
+    fullPrompt += ` CRITICAL TEXT RENDERING RULES — HIGHEST PRIORITY:
+1. HEADLINE TEXT (render EXACTLY, letter by letter, no changes): "${cleanHeadline}"
+2. ZERO spelling mistakes. ZERO letter substitutions. ZERO word omissions. Copy the text CHARACTER BY CHARACTER.
+3. The text must be fully readable, high contrast, and clearly legible.
+4. Place the headline prominently with large bold typography.`;
+    if (cleanSubHeadline) {
+      fullPrompt += `\n5. SUBHEADLINE TEXT (render EXACTLY): "${cleanSubHeadline}" — smaller size, below headline.`;
+    }
+    if (accentColor) fullPrompt += `\n6. Use ${accentColor} as the primary accent color for highlights and graphic elements.`;
+    if (headlineFont) fullPrompt += `\n7. Typography style: bold, impactful, professional — font class: ${headlineFont}.`;
+    fullPrompt += `\n8. All text must fit within the ${aspectRatio} frame without clipping or overflow.`;
   }
 
   if (characterReference) {

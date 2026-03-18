@@ -2,7 +2,13 @@
 import { AdProject } from "../types";
 
 const HISTORY_KEY = 'adgenius_history_v1';
-const MAX_ITEMS = 5; // Conservative limit due to base64 images
+const MAX_ITEMS = 3;
+
+// Strip images from a project to save storage space
+const stripImages = (project: AdProject): AdProject => ({
+  ...project,
+  slides: project.slides.map(s => ({ ...s, backgroundImageUrl: null }))
+});
 
 export const getHistory = (): AdProject[] => {
   try {
@@ -17,26 +23,36 @@ export const getHistory = (): AdProject[] => {
 export const saveToHistory = (project: AdProject): AdProject[] => {
   try {
     const current = getHistory();
-    // Remove if exists (update scenario)
     const filtered = current.filter(p => p.id !== project.id);
-    // Add to top
     const updated = [project, ...filtered].slice(0, MAX_ITEMS);
-    
+
+    // Try saving with full images first
     try {
       localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
-    } catch (quotaError) {
-      console.warn("Storage quota exceeded, removing oldest items...");
-      // Emergency trim if base64 images are huge
-      const emergencyTrim = [project, ...filtered].slice(0, 2);
+      return updated;
+    } catch {
+      // Quota exceeded: keep current project images, strip images from older ones
+      console.warn("Storage quota exceeded — stripping images from older history items...");
+      const stripped = [project, ...filtered.map(stripImages)].slice(0, MAX_ITEMS);
       try {
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(emergencyTrim));
-        return emergencyTrim;
-      } catch (e) {
-        console.error("Critical storage error");
-        return filtered; // Return previous state if saving fails completely
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(stripped));
+        return stripped;
+      } catch {
+        // Still failing: strip ALL images including current project
+        console.warn("Still over quota — stripping all images...");
+        const allStripped = [stripImages(project), ...filtered.map(stripImages)].slice(0, MAX_ITEMS);
+        try {
+          localStorage.setItem(HISTORY_KEY, JSON.stringify(allStripped));
+          return allStripped;
+        } catch (e) {
+          console.error("Critical storage error — clearing history");
+          try {
+            localStorage.setItem(HISTORY_KEY, JSON.stringify([project]));
+          } catch { localStorage.removeItem(HISTORY_KEY); }
+          return [project];
+        }
       }
     }
-    return updated;
   } catch (e) {
     console.error("Failed to save history", e);
     return [];
@@ -46,6 +62,8 @@ export const saveToHistory = (project: AdProject): AdProject[] => {
 export const deleteFromHistory = (id: string): AdProject[] => {
   const current = getHistory();
   const updated = current.filter(p => p.id !== id);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+  } catch { /* ignore */ }
   return updated;
 };

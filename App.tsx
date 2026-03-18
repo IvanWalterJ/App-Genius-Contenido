@@ -115,7 +115,16 @@ const App: React.FC = () => {
         };
         checkKey();
 
-        setHistory(getHistory());
+        // On mount: strip images from old history to free up localStorage quota
+        const existingHistory = getHistory();
+        const strippedHistory = existingHistory.map(p => ({
+            ...p,
+            slides: p.slides.map(s => ({ ...s, backgroundImageUrl: null as string | null }))
+        }));
+        try {
+            localStorage.setItem('adgenius_history_v1', JSON.stringify(strippedHistory.slice(0, 3)));
+        } catch { localStorage.removeItem('adgenius_history_v1'); }
+        setHistory(strippedHistory);
     }, []);
 
     const handleConnectKey = async () => {
