@@ -74,7 +74,7 @@ const App: React.FC = () => {
     const { user, profile, loading, signOut, refreshProfile } = useAuth();
     const [hasKey, setHasKey] = useState(false);
     const [prompt, setPrompt] = useState('');
-    const [genMode, setGenMode] = useState<GenerationMode>('carousel');
+    const [genMode, setGenMode] = useState<GenerationMode>('single-image');
     const [intent, setIntent] = useState<ContentIntent>('paid-ads');
     const [style, setStyle] = useState<VisualStyle>('auto');
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
@@ -110,7 +110,7 @@ const App: React.FC = () => {
     const [editorTab, setEditorTab] = useState<'text' | 'image' | 'design' | 'video'>('text');
 
     // Sidebar Mode (Create vs History vs Winners vs Assets vs Brands)
-    const [sidebarMode, setSidebarMode] = useState<'create' | 'history' | 'winners' | 'brands'>('create');
+    const [sidebarMode, setSidebarMode] = useState<'create' | 'carousels' | 'history' | 'winners' | 'brands'>('create');
     const [history, setHistory] = useState<AdProject[]>([]);
 
     // Hover preview state
@@ -405,6 +405,7 @@ const App: React.FC = () => {
 
                 try {
                     const slideAccent = (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor;
+                    const isCarouselMode = genMode === 'carousel' || genMode === 'manual-carousel';
                     imageUrl = await generateSlideImage(
                         updatedSlides[i].visualPrompt, 
                         style, 
@@ -414,7 +415,10 @@ const App: React.FC = () => {
                         genMode === 'angles-batch',
                         refImages.length > 0 ? refImages : undefined,
                         updatedSlides[i].customStyle,
-                        designReferences.length > 0 ? designReferences : undefined
+                        designReferences.length > 0 ? designReferences : undefined,
+                        isCarouselMode ? undefined : updatedSlides[i].headline,
+                        isCarouselMode ? undefined : updatedSlides[i].subHeadline,
+                        isCarouselMode ? undefined : updatedSlides[i].headlineFont
                     );
                 } catch (imgErr: any) {
                     imageError = "Error de IA";
@@ -468,6 +472,7 @@ const App: React.FC = () => {
         const slideIdx = activeSlideIdx;
         const currentSlide = project.slides[slideIdx];
         try {
+            const isCarouselMode = project.mode === 'carousel' || project.mode === 'manual-carousel';
             const newUrl = await generateSlideImage(
                 currentSlide.visualPrompt, 
                 project.visualStyle, 
@@ -477,7 +482,10 @@ const App: React.FC = () => {
                 project.mode === 'angles-batch',
                 refImages.length > 0 ? refImages : undefined,
                 currentSlide.customStyle,
-                designReferences.length > 0 ? designReferences : undefined
+                designReferences.length > 0 ? designReferences : undefined,
+                isCarouselMode ? undefined : currentSlide.headline,
+                isCarouselMode ? undefined : currentSlide.subHeadline,
+                isCarouselMode ? undefined : currentSlide.headlineFont
             );
             updateSlide(slideIdx, { backgroundImageUrl: newUrl, imageError: undefined });
         } catch (err) {
@@ -707,9 +715,13 @@ const App: React.FC = () => {
                         <Settings className="w-5 h-5 shrink-0" />
                         <span className="text-xs font-bold uppercase tracking-widest hidden md:block">Business DNA</span>
                     </button>
-                    <button onClick={() => { setSidebarMode('create'); setProject(null); }} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'create' ? 'bg-accent-primary/20 text-accent-primary shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
+                    <button onClick={() => { setSidebarMode('create'); setProject(null); setGenMode('single-image'); }} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'create' ? 'bg-accent-primary/20 text-accent-primary shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
                         <Sparkles className="w-5 h-5 shrink-0" />
                         <span className="text-xs font-bold uppercase tracking-widest hidden md:block">Campaigns</span>
+                    </button>
+                    <button onClick={() => { setSidebarMode('carousels'); setProject(null); setGenMode('carousel'); }} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'carousels' ? 'bg-accent-primary/20 text-accent-primary shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
+                        <Layers className="w-5 h-5 shrink-0" />
+                        <span className="text-xs font-bold uppercase tracking-widest hidden md:block">Carousels</span>
                     </button>
                     <button onClick={() => setSidebarMode('history')} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'history' ? 'bg-white/10 text-bone-white shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
                         <History className="w-5 h-5 shrink-0" />
@@ -740,7 +752,7 @@ const App: React.FC = () => {
             <main className="flex-1 overflow-y-auto bg-deep-bg relative">
                 <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-accent-primary/5 via-accent-secondary/5 to-transparent pointer-events-none" />
 
-                {sidebarMode !== 'create' || !project ? (
+                {(sidebarMode !== 'create' && sidebarMode !== 'carousels') || !project ? (
                     <div className="flex flex-col items-center pt-16 md:pt-24 px-4 max-w-5xl mx-auto w-full z-10 animate-in fade-in zoom-in duration-700 min-h-screen">
 
                         {sidebarMode === 'brands' ? (
@@ -944,8 +956,8 @@ const App: React.FC = () => {
                             // CREATE / MAIN PROMPT SCREEN
                             <div className="w-full flex-col items-center flex">
                                 <div className="text-center mb-8 space-y-4">
-                                    <h1 className="text-5xl md:text-6xl text-bone-white font-serif italic mb-2 tracking-tight flex items-center justify-center gap-4">📣 Campañas</h1>
-                                    <p className="text-neutral-400 text-sm md:text-base font-medium">Comienza desde nuestras sugerencias o escribe tu prompt para crear una nueva campaña.</p>
+                                    <h1 className="text-5xl md:text-6xl text-bone-white font-serif italic mb-2 tracking-tight flex items-center justify-center gap-4">{sidebarMode === 'carousels' ? '🎠 Carruseles' : '📣 Campañas'}</h1>
+                                    <p className="text-neutral-400 text-sm md:text-base font-medium">{sidebarMode === 'carousels' ? 'Genera carruseles con imágenes limpias, sin texto, para editarlas manualmente en Canva u otra herramienta.' : 'Genera imágenes con texto integrado de alta calidad para tus campañas publicitarias.'}</p>
                                 </div>
 
                                 {/* Big Prompt Box */}
@@ -977,10 +989,11 @@ const App: React.FC = () => {
                                             <CustomSelect
                                                 value={genMode}
                                                 onChange={(v) => { setGenMode(v as GenerationMode); setSlideCount(v === 'single-image' ? 1 : 6); }}
-                                                options={[
-                                                    { value: 'single-image', label: 'Una Imagen' },
+                                                options={sidebarMode === 'carousels' ? [
                                                     { value: 'carousel', label: 'Carrusel (IA)' },
                                                     { value: 'manual-carousel', label: 'Carrusel Manual' },
+                                                ] : [
+                                                    { value: 'single-image', label: 'Una Imagen' },
                                                     { value: 'angles-batch', label: 'Mezcla (Volumen)' },
                                                 ]}
                                             />
@@ -1226,30 +1239,37 @@ const App: React.FC = () => {
                                 <div className="p-4 md:p-6 bg-neutral-900/80 border border-white/10 rounded-2xl md:rounded-[32px] space-y-6 backdrop-blur-md shadow-2xl">
 
                                     {/* Top Actions */}
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button onClick={handleRegenerateSlideCopy} disabled={regeneratingCopy} className="bg-accent-primary/10 hover:bg-accent-primary/20 p-4 rounded-2xl text-xs font-bold text-accent-primary flex items-center justify-center gap-3 border border-accent-primary/30 transition-all hover:scale-[1.02] shadow-[0_0_20px_rgba(249,115,22,0.1)]">
-                                            {regeneratingCopy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />} REESCRIBIR COPY
-                                        </button>
+                                    <div className={`grid gap-3 ${(project.mode === 'carousel' || project.mode === 'manual-carousel') ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                                        {project.mode !== 'carousel' && project.mode !== 'manual-carousel' && (
+                                            <button onClick={handleRegenerateSlideCopy} disabled={regeneratingCopy} className="bg-accent-primary/10 hover:bg-accent-primary/20 p-4 rounded-2xl text-xs font-bold text-accent-primary flex items-center justify-center gap-3 border border-accent-primary/30 transition-all hover:scale-[1.02] shadow-[0_0_20px_rgba(249,115,22,0.1)]">
+                                                {regeneratingCopy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />} REESCRIBIR COPY
+                                            </button>
+                                        )}
                                         <button onClick={handleRegenerateSlideImage} disabled={regeneratingImage} className="bg-white/5 hover:bg-white/10 p-4 rounded-2xl text-xs font-bold text-bone-white flex items-center justify-center gap-3 border border-white/10 transition-all hover:scale-[1.02]">
                                             {regeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />} NUEVA IMAGEN
                                         </button>
                                     </div>
 
-                                    {/* Editor Tabs */}
-                                    <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/5">
-                                        <button onClick={() => setEditorTab('text')} className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${editorTab === 'text' ? 'bg-neutral-800 text-white shadow-lg scale-100' : 'text-neutral-500 hover:text-white hover:bg-white/5'}`}>
-                                            <TypeIcon className="w-4 h-4" /> TEXTO
-                                        </button>
-                                        <button onClick={() => setEditorTab('image')} className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${editorTab === 'image' ? 'bg-neutral-800 text-white shadow-lg scale-100' : 'text-neutral-500 hover:text-white hover:bg-white/5'}`}>
-                                            <ImageIcon className="w-4 h-4" /> IMAGEN
-                                        </button>
-                                        <button onClick={() => setEditorTab('video')} className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${editorTab === 'video' ? 'bg-neutral-800 text-white shadow-lg scale-100' : 'text-neutral-500 hover:text-white hover:bg-white/5'}`}>
-                                            <Video className="w-4 h-4" /> VIDEO
-                                        </button>
-                                    </div>
+                                    {/* Editor Tabs — Carousels only get image tab */}
+                                    {(project.mode === 'carousel' || project.mode === 'manual-carousel') ? (
+                                        <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/5">
+                                            <button className="flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 bg-neutral-800 text-white shadow-lg">
+                                                <ImageIcon className="w-4 h-4" /> IMAGEN
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex bg-black/40 p-1.5 rounded-2xl border border-white/5">
+                                            <button onClick={() => setEditorTab('text')} className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${editorTab === 'text' ? 'bg-neutral-800 text-white shadow-lg scale-100' : 'text-neutral-500 hover:text-white hover:bg-white/5'}`}>
+                                                <TypeIcon className="w-4 h-4" /> TEXTO
+                                            </button>
+                                            <button onClick={() => setEditorTab('image')} className={`flex-1 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all ${editorTab === 'image' ? 'bg-neutral-800 text-white shadow-lg scale-100' : 'text-neutral-500 hover:text-white hover:bg-white/5'}`}>
+                                                <ImageIcon className="w-4 h-4" /> IMAGEN
+                                            </button>
+                                        </div>
+                                    )}
 
-                                    {/* TEXT EDITOR TAB */}
-                                    {editorTab === 'text' && (
+                                    {/* TEXT EDITOR TAB — Only for non-carousel modes */}
+                                    {editorTab === 'text' && project.mode !== 'carousel' && project.mode !== 'manual-carousel' && (
                                         <div className="space-y-5 animate-in fade-in duration-300">
 
                                             <div className="space-y-4 p-5 bg-neutral-800/20 border border-white/5 rounded-2xl">
@@ -1283,8 +1303,8 @@ const App: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {/* IMAGE EDITOR TAB (AI Focused) */}
-                                    {editorTab === 'image' && (
+                                    {/* IMAGE EDITOR TAB — Shown for all modes (carousel mode forces this tab) */}
+                                    {(editorTab === 'image' || project.mode === 'carousel' || project.mode === 'manual-carousel') && (
                                         <div className="space-y-6 animate-in fade-in duration-300 p-2">
                                             {/* VISUAL PROMPT EDITOR */}
                                             <div className="space-y-3 pb-6 border-b border-white/5">
@@ -1340,90 +1360,7 @@ const App: React.FC = () => {
 
 
 
-                                    {/* VIDEO TAB */}
-                                    {editorTab === 'video' && (
-                                        <div className="space-y-6 animate-in fade-in duration-300 p-2">
-                                            <div className="p-6 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 rounded-3xl space-y-6">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center">
-                                                        <Video className="w-5 h-5 text-violet-400" />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-sm font-black uppercase tracking-widest text-white">Generar Video (Veo)</h3>
-                                                        <p className="text-[10px] text-neutral-500 font-bold">Transforma esta slide en una animación</p>
-                                                    </div>
-                                                </div>
 
-                                                <div className="space-y-3">
-                                                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 ml-1">Prompt de Animación</label>
-                                                    <textarea
-                                                        value={videoPrompt}
-                                                        onChange={(e) => setVideoPrompt(e.target.value)}
-                                                        placeholder="Ej: 'Una cámara lenta acercándose al producto con partículas de luz flotando'..."
-                                                        className="w-full bg-black/60 border border-white/10 rounded-2xl p-4 text-sm text-bone-white focus:border-accent-primary/50 outline-none resize-none h-32 leading-relaxed"
-                                                    />
-                                                </div>
-
-                                                {isVideoGenerating && (
-                                                    <div className="space-y-3 p-4 bg-black/40 rounded-2xl border border-white/5 animate-pulse">
-                                                        <div className="flex items-center gap-3">
-                                                            <Loader2 className="w-4 h-4 animate-spin text-accent-primary" />
-                                                            <span className="text-xs font-bold text-accent-primary/80">{videoProgress}</span>
-                                                        </div>
-                                                        <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-                                                            <div className="h-full bg-accent-primary w-1/2" />
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                <button
-                                                    onClick={handleGenerateVideo}
-                                                    disabled={isVideoGenerating || !videoPrompt.trim()}
-                                                    className="w-full py-4 bg-white text-black rounded-2xl font-black text-xs tracking-widest flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl disabled:opacity-50"
-                                                >
-                                                    {isVideoGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                                                    GENERAR VIDEO CON VEO
-                                                </button>
-
-                                                <p className="text-[10px] text-neutral-500 text-center leading-relaxed">
-                                                    Veo generará un video de 5-7 segundos basado en tu prompt y la imagen actual. El proceso puede tardar hasta 2 minutos.
-                                                </p>
-                                            </div>
-
-                                            {project.slides[activeSlideIdx].videoUrl && (
-                                                <div className="space-y-4 animate-in zoom-in duration-500">
-                                                    <div className="flex items-center justify-between">
-                                                        <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Resultado Generado</label>
-                                                        <button
-                                                            onClick={() => updateSlide(activeSlideIdx, { videoUrl: null })}
-                                                            className="text-[10px] font-bold text-red-400 hover:text-red-300 transition-colors"
-                                                        >
-                                                            ELIMINAR
-                                                        </button>
-                                                    </div>
-                                                    <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/10 shadow-2xl group">
-                                                        <video
-                                                            src={project.slides[activeSlideIdx].videoUrl!}
-                                                            controls
-                                                            className="w-full h-full object-cover"
-                                                            autoPlay
-                                                            loop
-                                                            muted
-                                                        />
-                                                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <a
-                                                                href={project.slides[activeSlideIdx].videoUrl!}
-                                                                download="video-generado.mp4"
-                                                                className="p-2 bg-black/60 backdrop-blur-md rounded-lg text-white hover:bg-white hover:text-black transition-all"
-                                                            >
-                                                                <Download className="w-4 h-4" />
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </div>

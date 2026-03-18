@@ -227,7 +227,15 @@ export const generateAdCopy = async (
   } else if (type === 'single-image') {
     sysInstruction += `\nTarea: Generar EXACTAMENTE 1 sola imagen publicitaria. El array 'slides' debe tener SOLO 1 elemento. Output JSON.`;
   } else {
-    sysInstruction += `\nTarea: Crear un carrusel de EXACTAMENTE ${targetSlides} slides con narrativa continua (hook→problema→solución→beneficio→prueba→CTA). Output JSON con ${targetSlides} items en el array 'slides'.`;
+    sysInstruction += `\nTarea: Crear un carrusel de EXACTAMENTE ${targetSlides} slides con narrativa continua (hook→problema→solución→beneficio→prueba→CTA). Output JSON con ${targetSlides} items en el array 'slides'.
+    
+## COHERENCIA VISUAL OBLIGATORIA PARA CARRUSEL:
+Todos los slides deben sentirse como PARTE DE LA MISMA CAMPAÑA. Esto significa:
+1. MISMO ESTILO VISUAL: Usa el mismo tipo de iluminación, paleta de colores, y estética en TODAS las slides.
+2. PERSONAJES CONSISTENTES: Si hay una persona en el slide 1, esa MISMA persona (misma ropa, mismas características físicas) debe aparecer en las demás slides donde corresponda.
+3. AMBIENTE COHERENTE: Mantén el mismo tipo de escenario/fondo o una progresión lógica del mismo.
+4. CADA visualPrompt debe describir con EXTREMO detalle la escena visual, ya que las imágenes se generarán SIN texto superpuesto.
+5. Los visualPrompts deben indicar explícitamente elementos de consistencia: "mismo personaje del slide anterior", "continuando la misma escena", etc.`;
   }
 
   sysInstruction += `\n\nIMPORTANTE: El campo 'slides' del JSON debe tener EXACTAMENTE ${targetSlides} elemento(s). Ni más, ni menos.`;
@@ -328,7 +336,10 @@ export const generateSlideImage = async (
   isBatch: boolean = false,
   characterReference?: string | string[],
   customStyle?: string,
-  styleReference?: string | string[]
+  styleReference?: string | string[],
+  headline?: string,
+  subHeadline?: string,
+  headlineFont?: string
 ): Promise<string> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
@@ -337,15 +348,37 @@ export const generateSlideImage = async (
 
   let fullPrompt = `${stylePrefix} ${prompt}. Aspect ratio strictly ${aspectRatio}. Optimized for ${aspectRatio} viewport. Professional photography, high end production.`;
 
+  // TEXT BAKING: If headline is provided, bake text into the image (for single-image and volume modes)
+  if (headline && headline.trim()) {
+    fullPrompt += `\n\nTEXT ON IMAGE (MANDATORY):
+You MUST render the following text DIRECTLY ON the image as part of the design. The text must be:
+- PERFECTLY LEGIBLE, with zero spelling errors
+- Styled as premium advertising typography
+- Font style: ${headlineFont || 'bold sans-serif, modern and clean'}
+- Use high contrast against the background for readability
+- HEADLINE (large, bold, dominant): "${headline}"`;
+    if (subHeadline && subHeadline.trim()) {
+      fullPrompt += `\n- SUB-HEADLINE (smaller, below the headline): "${subHeadline}"`;
+    }
+    fullPrompt += `\nThe text IS the centerpiece of this ad visual. It must look like a professional advertising poster with integrated typography.`;
+  } else {
+    // CAROUSEL MODE: Explicitly prohibit any text
+    fullPrompt += `\n\nCRITICAL: Do NOT include ANY text, words, letters, numbers, watermarks, or typography in this image. This is a VISUAL-ONLY image. Generate ONLY the visual scene described above with ZERO text elements.`;
+  }
+
   if (characterReference) {
     fullPrompt += ` CHARACTER CONSISTENCY MANDATE: The person depicted MUST exactly match the reference photo provided — same face, ethnicity, age, hair, and physical features. This is non-negotiable for brand consistency across all slides.`;
   }
 
   // Image generation models — ordered by quality/availability
-  // gemini-2.0-flash-exp-image-generation removed: returns 404 on v1beta
-  const imgModels = [
+  // When text is baked, prioritize nano-banana (best text rendering)
+  const imgModels = (headline && headline.trim()) ? [
+    'models/nano-banana-2-pro-preview',
     'models/gemini-3.1-flash-image-preview',
-    'models/nano-banana-pro-preview',
+    'models/gemini-2.5-flash-image',
+  ] : [
+    'models/gemini-3.1-flash-image-preview',
+    'models/nano-banana-2-pro-preview',
     'models/gemini-2.5-flash-image',
   ];
 
