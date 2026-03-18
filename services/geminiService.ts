@@ -179,9 +179,17 @@ export const generateAdCopy = async (
 
   let sysInstruction = `Rol: Director Creativo y Copywriter de Respuesta Directa de Élite, especializado en marketing de impacto y psicología de ventas de alto CTR.
   
-  ## BRIEF CREATIVO
-  El usuario ha proporcionado instrucciones específicas. Tu trabajo es CUMPLIRLAS AL PIE DE LA LETRA para los aspectos estructurales (número de slides, tema, producto, servicio, ángulos pedidos) y ELEVAR el copywriting a nivel profesional de respuesta directa.
-  Si el usuario pide un número específico de slides, DEBES generar EXACTAMENTE ese número. Si pide slides sobre temas específicos, DEBES respetarlos. El brief del usuario es una ORDEN, no una sugerencia.
+  ## ⚠️ REGLA #1 — PROHIBIDO COPIAR EL TEXTO DEL USUARIO LITERALMENTE
+  El texto del usuario es SOLO un BRIEF CREATIVO, una IDEA, una DIRECCIÓN. Tu trabajo como Director Creativo es:
+  1. INTERPRETAR la idea del usuario y ENTENDER qué producto/servicio quiere promocionar
+  2. CREAR TU PROPIO COPY PROFESIONAL desde cero, usando ángulos de venta, gatillos emocionales y técnicas de respuesta directa
+  3. NUNCA JAMÁS uses las palabras exactas del usuario como headline o subheadline. El usuario te da la idea, TÚ creas el copy de venta.
+  
+  Ejemplo: Si el usuario dice "Necesito un anuncio para mi app de copywriting con IA", TÚ debes crear un headline como "Escribe anuncios que venden en 30 segundos" o "La IA que convierte tus ideas en copys que facturan" — NO "Crea una app de copywriting con IA".
+  
+  ## BRIEF CREATIVO DEL USUARIO (INTERPRETA, NO COPIES):
+  El usuario quiere promocionar algo relacionado con: "${prompt}"
+  Usa esto como CONTEXTO para entender el producto/servicio/nicho. Luego INVENTA copy publicitario profesional que VENDA, atacando los dolores y deseos del público objetivo.
 
   ## CONTEXTO DE MARCA (OBLIGATORIO - PERSONALIZA TODO A ESTO):
   - Nombre de Marca: ${brandContext.name || '(sin nombre)'}
@@ -199,13 +207,12 @@ export const generateAdCopy = async (
   5. NUNCA uses frases genéricas como "Mejora tu vida" o "El mejor servicio". Sé ESPECÍFICO al nicho: ${brandContext.niche || 'el sector'}.
   6. El tono DEBE ser ${brandContext.tone || 'Profesional y Persuasivo'} en TODOS los slides.
   7. La CTA debe crear urgencia o reducir fricción (ej: "Agenda tu llamada gratis", "Ver cómo funciona").
-  ${brandContext.colorPalette ? `8. En los visualPrompts de imagen, incorpora la paleta de colores de marca: ${brandContext.colorPalette}` : ''}
-  
-  ## IDEA BASE DEL USUARIO (úsala como inspiración, no copiando literalmente - RESPONDER SIEMPRE EN ESPAÑOL):
-  "${prompt}"
+  8. NUNCA repitas el prompt del usuario en los headlines. Crea copy ORIGINAL de venta.
+  ${brandContext.colorPalette ? `9. En los visualPrompts de imagen, incorpora la paleta de colores de marca: ${brandContext.colorPalette}` : ''}
   
   ${brandContext.tone ? `## TONO ESPECÍFICO: ${brandContext.tone} — que esto se SIENTA en cada palabra.` : ''}
   - HeadlineSize sugeridos: 40-70 para Single, 35-50 para Carrusel.
+  - RECUERDA: El copy DEBE ser inventado por TI como profesional. El usuario NO te está dando el texto, te está dando la IDEA.
   `;
 
   if (styleReference) {
@@ -217,7 +224,12 @@ export const generateAdCopy = async (
   }
 
   if (characterReference) {
-    sysInstruction += `\nPERSONAJE DE REFERENCIA: Se ha proporcionado una imagen de una persona. La IA debe mantener la consistencia física de esta persona en todas las escenas generadas.`;
+    sysInstruction += `\nPERSONAJE DE REFERENCIA: Se ha proporcionado una foto de referencia de una persona. IMPORTANTE:
+    - IDENTIDAD: Mantén la MISMA cara, rasgos faciales, color de piel, tipo de cabello y complexión física.
+    - VARIACIÓN OBLIGATORIA: En cada slide, pon al personaje en DIFERENTE pose, expresión, ángulo de cámara y situación.
+    - Ejemplos: sonriendo en una, seria y profesional en otra, mirando su laptop, hablando con un cliente, señalando algo, de perfil, primer plano, plano medio, etc.
+    - NUNCA generes la misma pose ni el mismo ángulo de cara en dos slides. La foto de referencia es solo para capturar la IDENTIDAD, no para CLONAR la pose.
+    - En los visualPrompts de cada slide, describe ESPECÍFICAMENTE la pose y expresión que quieres para ese slide.`;
   }
 
   const hasSlideMarkers = /slide \d+/i.test(prompt) || /\[slide \d+\]/i.test(prompt);
@@ -367,7 +379,7 @@ You MUST render the following text DIRECTLY ON the image as part of the design. 
   }
 
   if (characterReference) {
-    fullPrompt += ` CHARACTER CONSISTENCY MANDATE: The person depicted MUST exactly match the reference photo provided — same face, ethnicity, age, hair, and physical features. This is non-negotiable for brand consistency across all slides.`;
+    fullPrompt += ` CHARACTER IDENTITY REFERENCE: Use the reference photo ONLY to capture the person's IDENTITY (face shape, skin tone, hair type, facial features). However, you MUST generate the person in a COMPLETELY DIFFERENT pose, expression, camera angle, and body position than the reference photo. The person should look natural and dynamic in the scene described — NOT a static clone of the reference. Vary head tilt, gaze direction, facial expression, and body language.`;
   }
 
   // Image generation models — ordered by quality/availability
