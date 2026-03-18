@@ -363,75 +363,84 @@ export const generateSlideImage = async (
     fullPrompt += ` MANDATORY: The person in this image must match the face, ethnicity, age, and features of the provided reference character. EXTREME CONSISTENCY with the person is required.`;
   }
 
-  // ✅ VERIFIED model names - confirmed via ListModels API on 2026-03-04
-  // Primary: Nano Banana 2 (gemini-3.1-flash-image-preview)
-  // DO NOT CHANGE without running check_models.js first
+  // Image generation models — ordered by quality/availability
+  // gemini-2.0-flash-exp-image-generation removed: returns 404 on v1beta
   const imgModels = [
-    'models/gemini-3.1-flash-image-preview',  // Nano Banana 2 - VERIFIED
-    'models/nano-banana-pro-preview',          // Nano Banana Pro - VERIFIED  
-    'models/gemini-2.5-flash-image',           // Gemini 2.5 Flash Image - VERIFIED
-    'models/gemini-2.0-flash-exp-image-generation' // Legacy fallback - VERIFIED
+    'models/gemini-3.1-flash-image-preview',
+    'models/nano-banana-pro-preview',
+    'models/gemini-2.5-flash-image',
   ];
 
-  for (const model of imgModels) {
-    try {
-      console.log(`Image Generation: Trying ${model}...`);
+  const configObj: any = {
+    responseModalities: ['TEXT', 'IMAGE'],
+    aspectRatio: aspectRatio
+  };
 
-      const configObj: any = {
-        responseModalities: ['TEXT', 'IMAGE'],
-        aspectRatio: aspectRatio
-      };
+  const contentParts: any[] = [];
 
-      const contentParts: any[] = [];
-
-      if (styleReference) {
-        const refs = Array.isArray(styleReference) ? styleReference : [styleReference];
-        refs.forEach(ref => {
-          const base64Data = ref?.split(',')[1];
-          if (base64Data) contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
-        });
-        // Add a specialized style instruction
-        fullPrompt += ` \nSTYLE REFERENCE INSTRUCTION: Replicate the EXACT visual DNA of the provided reference image. This includes: 
+  if (styleReference) {
+    const refs = Array.isArray(styleReference) ? styleReference : [styleReference];
+    refs.forEach(ref => {
+      const base64Data = ref?.split(',')[1];
+      if (base64Data) contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+    });
+    fullPrompt += ` \nSTYLE REFERENCE INSTRUCTION: Replicate the EXACT visual DNA of the provided reference image. This includes:
         1. COLOR PALETTE: Use the same dominant colors and accent glows (e.g., magenta/purple neon).
         2. TYPOGRAPHY & GRAPHICS: Mimic the font style, weight, and any graphical effects (glitch, pixelation, overlays).
         3. LIGHTING & ATMOSPHERE: Match the high-contrast lighting, dramatic shadows, and overall 'Vibe'.
         Apply this BRAND STYLE to the subject: ${prompt}. The goal is consistency so they look part of the same campaign.`;
-      }
+  }
 
-      if (characterReference) {
-        const refs = Array.isArray(characterReference) ? characterReference : [characterReference];
-        refs.forEach(ref => {
-          const base64Data = ref?.split(',')[1];
-          if (base64Data) contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
-        });
-      }
+  if (characterReference) {
+    const refs = Array.isArray(characterReference) ? characterReference : [characterReference];
+    refs.forEach(ref => {
+      const base64Data = ref?.split(',')[1];
+      if (base64Data) contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
+    });
+  }
 
-      // Add the final prompt after the visual references
-      contentParts.push({ text: fullPrompt });
+  contentParts.push({ text: fullPrompt });
 
-      const response = await withTimeout(
-        ai.models.generateContent({
-          model: model,
-          contents: [{ parts: contentParts }],
-          config: configObj
-        }),
-        45000,
-        `Image Generation Timeout: ${model}`
-      );
-
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if ((part as any).inlineData?.data) {
-          const mime = (part as any).inlineData.mimeType || 'image/png';
-          return `data:${mime};base64,${(part as any).inlineData.data}`;
+  for (const model of imgModels) {
+    // Each model gets 2 attempts: retry once on 503 (high demand / temporary)
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        if (attempt > 0) {
+          console.log(`${model} retrying after 503 (attempt ${attempt + 1})...`);
+          await new Promise(r => setTimeout(r, 3000));
+        } else {
+          console.log(`Image Generation: Trying ${model}...`);
         }
+
+        const response = await withTimeout(
+          ai.models.generateContent({
+            model: model,
+            contents: [{ parts: contentParts }],
+            config: configObj
+          }),
+          45000,
+          `Image Generation Timeout: ${model}`
+        );
+
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
+          if ((part as any).inlineData?.data) {
+            const mime = (part as any).inlineData.mimeType || 'image/png';
+            return `data:${mime};base64,${(part as any).inlineData.data}`;
+          }
+        }
+        break; // No image in response, skip to next model
+      } catch (err: any) {
+        const is503 = err.message?.includes('503') || err.message?.includes('UNAVAILABLE') || String(err.status) === '503';
+        if (is503 && attempt === 0) {
+          console.warn(`${model} 503 — will retry in 3s`);
+          continue; // Retry this model
+        }
+        console.warn(`${model} image gen failed:`, err.message);
+        if (err.message?.includes("API key not valid") || String(err.status) === "403" || err.message?.includes("401")) {
+          throw err; // Auth error — stop immediately
+        }
+        break; // Try next model
       }
-    } catch (err: any) {
-      console.warn(`${model} image gen failed:`, err.message);
-      // Fallback for ANY error (500, 503, not found, etc) EXCEPT authentication errors.
-      if (err.message?.includes("API key not valid") || String(err.status) === "403" || err.message?.includes("401")) {
-        throw err; // Stop if it's an auth/key issue
-      }
-      continue; // Try next model in tier
     }
   }
 
@@ -507,27 +516,93 @@ export const editImage = async (base64Image: string, prompt: string): Promise<st
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   const base64Data = base64Image.split(',')[1] || base64Image;
-  const response = await withTimeout(
-    ai.models.generateContent({
-      model: 'models/gemini-2.0-flash-exp-image-generation',
-      contents: [{
-        parts: [
-          { inlineData: { data: base64Data, mimeType: "image/png" } },
-          { text: `Edit this image: ${prompt}. Keep the same composition and subject but apply the requested changes. Return the edited image.` }
-        ]
-      }],
-      config: { responseModalities: ['IMAGE', 'TEXT'] }
-    }),
-    30000,
-    "Edit Image Timeout"
-  );
-  for (const part of response.candidates?.[0]?.content?.parts || []) {
-    if ((part as any).inlineData?.data) {
-      return `data:image/png;base64,${(part as any).inlineData.data}`;
+
+  const editModels = [
+    'models/gemini-3.1-flash-image-preview',
+    'models/nano-banana-pro-preview',
+    'models/gemini-2.5-flash-image',
+  ];
+
+  for (const model of editModels) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 3000));
+        const response = await withTimeout(
+          ai.models.generateContent({
+            model,
+            contents: [{
+              parts: [
+                { inlineData: { data: base64Data, mimeType: "image/png" } },
+                { text: `Edit this image: ${prompt}. Keep the same composition and subject but apply the requested changes. Return the edited image.` }
+              ]
+            }],
+            config: { responseModalities: ['IMAGE', 'TEXT'] }
+          }),
+          40000,
+          "Edit Image Timeout"
+        );
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
+          if ((part as any).inlineData?.data) {
+            return `data:image/png;base64,${(part as any).inlineData.data}`;
+          }
+        }
+        break;
+      } catch (err: any) {
+        const is503 = err.message?.includes('503') || err.message?.includes('UNAVAILABLE') || String(err.status) === '503';
+        if (is503 && attempt === 0) continue;
+        if (err.message?.includes("API key not valid") || String(err.status) === "403" || err.message?.includes("401")) throw err;
+        break;
+      }
     }
   }
   throw new Error("El modelo no devolvió una imagen editada. Intenta con una descripción diferente.");
 };
+export const generateVisualPromptForSlide = async (
+  headline: string,
+  subHeadline: string,
+  slideIndex: number,
+  totalSlides: number,
+  brandContext: BrandContext,
+  style: VisualStyle,
+  overallBrief: string
+): Promise<string> => {
+  const apiKey = getApiKey();
+  const ai = new GoogleGenAI({ apiKey });
+  const styleDesc = STYLE_CONFIGS[style]?.name || style;
+  const position = slideIndex === 0 ? 'apertura/gancho'
+    : slideIndex === totalSlides - 1 ? 'cierre/CTA'
+    : `slide ${slideIndex + 1} de ${totalSlides}`;
+
+  const response = await withTimeout(
+    ai.models.generateContent({
+      model: "models/gemini-2.0-flash",
+      contents: [{ parts: [{ text: `Eres un director de arte experto en publicidad digital. Genera un prompt visual detallado en inglés para una imagen de alta calidad publicitaria.
+
+SLIDE: ${position}
+HEADLINE: "${headline}"
+SUBHEADLINE: "${subHeadline}"
+MARCA: ${brandContext.name || 'marca'}
+NICHO: ${brandContext.niche || 'negocio'}
+AUDIENCIA: ${brandContext.targetAudience || 'general'}
+ESTILO: ${styleDesc}
+${overallBrief ? `CONTEXTO: ${overallBrief}` : ''}
+${brandContext.colorPalette ? `PALETA: ${brandContext.colorPalette}` : ''}
+
+REGLAS:
+- El prompt debe estar en INGLÉS
+- Describe escena, iluminación, composición y atmósfera que complementen el headline
+- Fotografía profesional de alta producción
+- NO incluyas texto en el prompt (el texto se renderiza por separado)
+- Máximo 2 oraciones precisas
+
+Devuelve SOLO el prompt visual en inglés, sin comentarios ni comillas.` }] }],
+    }),
+    15000,
+    "Visual Prompt Generation Timeout"
+  );
+  return response.text?.trim() || `Professional advertising scene for ${brandContext.niche || 'business'}, cinematic lighting, high-end production quality`;
+};
+
 export const generateVideo = async (prompt: string, images: string[]): Promise<string> => {
   console.log("Video generation not implemented in this version.");
   return "";

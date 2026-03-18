@@ -1,5 +1,5 @@
 
-export type GenerationMode = 'single-image' | 'carousel' | 'angles-batch';
+export type GenerationMode = 'single-image' | 'carousel' | 'angles-batch' | 'manual-carousel';
 export type ContentIntent = 'paid-ads' | 'organic-value' | 'viral-hook';
 export type VisualStyle = 'auto' | 'brutalism' | 'clean' | 'organic' | 'luxury' | 'meme' | '3d-clay' | 'cinematic-thriller' | 'tech-agency' | 'satirical-split' | 'novela-grafica';
 export type AspectRatio = '1:1' | '4:3' | '16:9' | '9:16' | '3:4';

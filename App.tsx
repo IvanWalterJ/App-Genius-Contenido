@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { AdProject, GenerationStatus, Slide, ContentIntent, VisualStyle, AspectRatio, GenerationMode, BrandContext } from './types';
-import { generateAdCopy, generateSlideImage, enhancePrompt, regenerateSlideCopy, editImage, generateVideo, getApiKey } from './services/geminiService';
+import { generateAdCopy, generateSlideImage, enhancePrompt, regenerateSlideCopy, editImage, generateVideo, getApiKey, generateVisualPromptForSlide } from './services/geminiService';
 import { getHistory, saveToHistory, deleteFromHistory } from './services/historyService';
 import { supabase, useCredit } from './services/supabase';
 import { useAuth } from './components/AuthContext';
@@ -34,6 +34,11 @@ const App: React.FC = () => {
     const [style, setStyle] = useState<VisualStyle>('auto');
     const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
     const [slideCount, setSlideCount] = useState<number>(6); // number of slides/images to generate
+    const [manualSlides, setManualSlides] = useState<Array<{ headline: string; subHeadline: string; cta?: string }>>([
+        { headline: '', subHeadline: '' },
+        { headline: '', subHeadline: '' },
+        { headline: '', subHeadline: '' },
+    ]);
 
     const [status, setStatus] = useState<GenerationStatus>('idle');
     const [project, setProject] = useState<AdProject | null>(null);
@@ -238,14 +243,39 @@ const App: React.FC = () => {
             // Trigger profile refresh in background so it doesn't stall the main AI flow
             refreshProfile().catch(console.error);
 
-            const copyResult = await generateAdCopy(
-                prompt, genMode, intent, style, brandContext,
-                designReferences.length > 0 ? designReferences : undefined, knowledgeBase || undefined, textMode,
-                refImages.length > 0 ? refImages : undefined, slideCount
-            );
+            let copyResult: any;
+            if (genMode === 'manual-carousel') {
+                // Manual mode: user provided text per slide — generate visual prompts via AI
+                const validManualSlides = manualSlides.filter(s => s.headline.trim());
+                if (validManualSlides.length === 0) {
+                    setError("Agrega al menos una slide con un titular.");
+                    setStatus('idle');
+                    return;
+                }
+                const slidesWithPrompts = await Promise.all(
+                    validManualSlides.map(async (slide, idx) => {
+                        const visualPrompt = await generateVisualPromptForSlide(
+                            slide.headline, slide.subHeadline || '', idx, validManualSlides.length,
+                            brandContext, style, prompt
+                        ).catch(() => `Professional advertising scene for ${brandContext.niche || 'business'}, cinematic lighting, high-end production quality`);
+                        return { headline: slide.headline, subHeadline: slide.subHeadline || '', cta: slide.cta || '', visualPrompt, layout: 'centered', angleLabel: `SLIDE ${idx + 1}` };
+                    })
+                );
+                copyResult = {
+                    title: prompt || 'Carrusel Manual',
+                    designTheme: { primaryColor: '#050505', accentColor: '#f97316', headlineFont: 'font-sans' },
+                    slides: slidesWithPrompts
+                };
+            } else {
+                copyResult = await generateAdCopy(
+                    prompt, genMode as 'carousel' | 'single-image' | 'angles-batch', intent, style, brandContext,
+                    designReferences.length > 0 ? designReferences : undefined, knowledgeBase || undefined, textMode,
+                    refImages.length > 0 ? refImages : undefined, slideCount
+                );
+            }
 
             // Enforce slide count limit (critical for single-image bug fix)
-            const maxSlides = genMode === 'single-image' ? 1 : (genMode === 'angles-batch' ? 6 : slideCount);
+            const maxSlides = genMode === 'single-image' ? 1 : (genMode === 'angles-batch' ? 6 : (genMode === 'manual-carousel' ? manualSlides.filter(s => s.headline.trim()).length : slideCount));
             const rawSlides = (copyResult.slides || []).slice(0, maxSlides);
 
             const newProject: AdProject = {
@@ -893,7 +923,8 @@ const App: React.FC = () => {
                                             <div className="relative">
                                                 <select value={genMode} onChange={(e) => { setGenMode(e.target.value as GenerationMode); setSlideCount(e.target.value === 'single-image' ? 1 : 6); }} className="bg-black/40 border border-white/5 rounded-full px-4 py-2 text-xs font-bold text-bone-white appearance-none outline-none cursor-pointer pl-4 pr-8 text-center md:text-left transition-all hover:bg-white/5">
                                                     <option value="single-image">Una Imagen</option>
-                                                    <option value="carousel">Carrusel</option>
+                                                    <option value="carousel">Carrusel (IA)</option>
+                                                    <option value="manual-carousel">Carrusel Manual</option>
                                                     <option value="angles-batch">Mezcla (Volumen)</option>
                                                 </select>
                                                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -946,6 +977,60 @@ const App: React.FC = () => {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Manual Carousel Slide Editor */}
+                                {genMode === 'manual-carousel' && (
+                                    <div className="w-full max-w-[800px] mt-4 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-xs font-black uppercase tracking-widest text-accent-primary">Carrusel Manual</p>
+                                                <p className="text-[10px] text-neutral-500 mt-0.5">Define el texto de cada slide. La IA genera las imágenes automáticamente.</p>
+                                            </div>
+                                            <button
+                                                onClick={() => setManualSlides(prev => [...prev, { headline: '', subHeadline: '' }])}
+                                                disabled={manualSlides.length >= 10}
+                                                className="text-xs font-bold px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary rounded-full hover:bg-accent-primary/20 transition-all disabled:opacity-40 flex items-center gap-1"
+                                            >
+                                                <Plus className="w-3 h-3" /> Añadir Slide
+                                            </button>
+                                        </div>
+                                        <div className="space-y-2">
+                                            {manualSlides.map((slide, idx) => (
+                                                <div key={idx} className="bg-black/40 border border-white/5 rounded-2xl p-4 space-y-3 group">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Slide {idx + 1}</span>
+                                                        {manualSlides.length > 1 && (
+                                                            <button onClick={() => setManualSlides(prev => prev.filter((_, i) => i !== idx))} className="opacity-0 group-hover:opacity-100 transition-opacity text-neutral-600 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/10">
+                                                                <Minus className="w-3 h-3" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={slide.headline}
+                                                        onChange={(e) => setManualSlides(prev => prev.map((s, i) => i === idx ? { ...s, headline: e.target.value } : s))}
+                                                        placeholder="Titular principal *"
+                                                        className="w-full bg-transparent border-b border-white/10 pb-2 text-sm font-bold text-white placeholder:text-neutral-700 outline-none focus:border-accent-primary/50 transition-colors"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={slide.subHeadline}
+                                                        onChange={(e) => setManualSlides(prev => prev.map((s, i) => i === idx ? { ...s, subHeadline: e.target.value } : s))}
+                                                        placeholder="Subtítulo o descripción"
+                                                        className="w-full bg-transparent border-b border-white/5 pb-2 text-xs text-neutral-400 placeholder:text-neutral-700 outline-none focus:border-accent-primary/30 transition-colors"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={slide.cta || ''}
+                                                        onChange={(e) => setManualSlides(prev => prev.map((s, i) => i === idx ? { ...s, cta: e.target.value } : s))}
+                                                        placeholder="Botón CTA (opcional)"
+                                                        className="w-full bg-transparent text-xs text-neutral-500 placeholder:text-neutral-700 outline-none"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Brand DNA status bar */}
                                 <div className="flex flex-wrap items-center gap-3 mt-4 w-full max-w-[800px]">
