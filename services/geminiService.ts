@@ -28,81 +28,81 @@ const cleanJSON = (text: string) => {
 
 // --- SAFE MODE FALLBACK ---
 const getSafeFallback = (prompt: string, style: string, brand: BrandContext, type: string, slideCount: number = 6): any => {
-  // Use brand context or extract from prompt as fallback
-  const niche = brand.niche || prompt.split(/\s+/).slice(0, 4).join(' ') || "tu sector";
-  const audience = brand.targetAudience || "tu audiencia";
-  const subject = brand.name || niche;
+  // NEVER use the raw prompt as copy. Only use brand context or generic marketing angles.
+  const brandName = brand.name || 'Tu Marca';
+  const niche = brand.niche || 'tu negocio';
+  const audience = brand.targetAudience || 'clientes';
 
   const allSlides = [
     {
-      headline: `*${subject}*: La solución que necesitas`,
-      subHeadline: `Descubre cómo ayudamos a ${audience} a lograr resultados extraordinarios con nuestro método probado.`,
-      visualPrompt: `High-end professional atmosphere for ${niche}, professional lighting, premium aesthetic related to ${audience}`,
+      headline: `¿Sigues haciendo lo *mismo* y esperando resultados diferentes?`,
+      subHeadline: `El 87% de ${audience} en ${niche} pierden tiempo y dinero por no tener un sistema probado. Tú puedes ser diferente.`,
+      visualPrompt: `High-end professional atmosphere, cinematic dramatic lighting, modern office environment, premium aesthetic, 4K photorealistic`,
       layout: "centered",
       angleLabel: "GANCHO"
     },
     {
-      headline: "El *Problema* de hoy",
-      subHeadline: `Sabemos que como ${audience}, te enfrentas a retos diarios en ${niche} que frenan tu crecimiento.`,
-      visualPrompt: `Metaphorical image about challenges in ${niche}, professional cinematic lighting`,
+      headline: "El *problema* que nadie te cuenta",
+      subHeadline: `Mientras ${audience} siguen con métodos obsoletos en ${niche}, los que lideran ya cambiaron su estrategia.`,
+      visualPrompt: `Metaphorical image about frustration and challenges, person looking at complex data, professional cinematic lighting, dark moody tones`,
       layout: "bottom-heavy",
       angleLabel: "DOLOR"
     },
     {
-      headline: "Nuestra *Solución*",
-      subHeadline: `Hemos diseñado un sistema específico para ${niche} que elimina la complejidad y maximiza tu energía.`,
-      visualPrompt: `Bright success imagery related to ${niche}, clean minimalist 4k`,
+      headline: `*${brandName}*: El sistema que lo cambia todo`,
+      subHeadline: `Diseñamos una solución específica para ${niche} que elimina la complejidad y multiplica tus resultados.`,
+      visualPrompt: `Bright futuristic success imagery, clean minimalist design, person celebrating achievement, premium 4K quality`,
       layout: "centered",
       angleLabel: "SOLUCIÓN"
     },
     {
-      headline: "Resultados *Reales*",
-      subHeadline: `Únete a personas en ${niche} que ya han transformado su rendimiento con nuestra ayuda.`,
-      visualPrompt: `Professional achievement in ${niche} context, warm lighting`,
+      headline: "*3x* más resultados en la mitad de tiempo",
+      subHeadline: `${audience} como tú ya lograron transformar su rendimiento en ${niche} con nuestro método comprobado.`,
+      visualPrompt: `Professional achievement celebration, growth charts going up, warm golden hour lighting, inspiring atmosphere`,
       layout: "top-heavy",
       angleLabel: "PRUEBA"
     },
     {
-      headline: "Tu Nueva *Realidad*",
-      subHeadline: `Imagina trabajar en su salud y rendimiento con la confianza de tener el mejor respaldo en ${niche}.`,
-      visualPrompt: `Inspirational setting for ${audience}, sunrise, hopeful professional vibe`,
+      headline: "Tu competencia ya *empezó*",
+      subHeadline: `Cada día que esperas, alguien más en ${niche} toma tu lugar. La ventana de oportunidad se cierra.`,
+      visualPrompt: `Dynamic competitive scene, person running ahead, dramatic cinematic lighting, urgency atmosphere`,
       layout: "centered",
-      angleLabel: "BENEFICIO"
+      angleLabel: "URGENCIA"
     },
     {
-      headline: "Accede *Ahora*",
-      subHeadline: `No pierdas la oportunidad de elevar tu estándar. Haz clic para empezar tu cambio hoy.`,
-      cta: "REGÍSTRATE AQUÍ",
-      visualPrompt: `Dynamic abstract geometric composition, premium production for ${niche}`,
+      headline: "Empieza *hoy*, ve resultados *mañana*",
+      subHeadline: `Sin compromisos. Sin letra chica. Solo resultados medibles para ${audience} en ${niche}.`,
+      cta: "QUIERO EMPEZAR",
+      visualPrompt: `Clean call-to-action scene, person confidently pressing button, modern tech environment, bright hopeful lighting`,
       layout: "bottom-heavy",
       angleLabel: "CIERRE"
     },
     {
-      headline: "¿Por qué *Nosotros*?",
-      subHeadline: `Más de 1,000 clientes en ${niche} ya confían en nosotros. Resultados comprobados, sin excusas.`,
-      visualPrompt: `Trust and credibility imagery for ${niche}, professional studio lighting`,
+      headline: "¿Por qué *nosotros* y no otro?",
+      subHeadline: `Más de 1,000 ${audience} en ${niche} ya confían en ${brandName}. Resultados comprobados, sin excusas.`,
+      visualPrompt: `Trust and credibility imagery, team of professionals, clean modern studio, professional lighting`,
       layout: "centered",
       angleLabel: "AUTORIDAD"
     },
     {
-      headline: "El *Secreto* que cambia todo",
-      subHeadline: `Lo que los líderes de ${niche} saben y aplican cada día. ¿Estás listo para saberlo?`,
-      visualPrompt: `Mysterious reveal concept for ${niche}, dramatic cinematic lighting`,
+      headline: "Lo que *nadie* te está diciendo sobre ${niche}",
+      subHeadline: `Los líderes del sector lo saben y lo aplican cada día. ¿Estás listo para descubrirlo?`,
+      visualPrompt: `Mysterious reveal concept, dramatic spotlight, secrets being unveiled, cinematic dark lighting with golden accents`,
       layout: "centered",
       angleLabel: "CURIOSIDAD"
     },
     {
-      headline: "Casos de *Éxito* reales",
-      subHeadline: `${audience} como tú lograron resultados extraordinarios en ${niche} en tiempo récord.`,
-      visualPrompt: `Success celebration related to ${niche}, warm golden hour lighting`,
+      headline: "De *0 a líder* en su categoría",
+      subHeadline: `Un caso real: cómo ${audience} en ${niche} pasó de la frustración a facturar 5 cifras mensuales.`,
+      visualPrompt: `Success transformation before/after concept, warm celebratory golden hour lighting, professional environment`,
       layout: "top-heavy",
       angleLabel: "SOCIAL PROOF"
     },
     {
-      headline: "Última *Oportunidad*",
-      subHeadline: `Las plazas son limitadas y el precio sube pronto. Actúa ahora o pierde tu ventaja en ${niche}.`,
+      headline: "Últimas *plazas* disponibles",
+      subHeadline: `Cupo limitado. El precio cambia pronto. Actúa ahora o pierde tu ventaja en ${niche}.`,
       cta: "RESERVAR MI LUGAR",
-      visualPrompt: `Urgency concept for ${niche}, red and gold dramatic composition`,
+      visualPrompt: `Urgency and scarcity concept, countdown timer, red and gold dramatic composition, high stakes atmosphere`,
       layout: "bottom-heavy",
       angleLabel: "URGENCIA"
     }
@@ -113,7 +113,7 @@ const getSafeFallback = (prompt: string, style: string, brand: BrandContext, typ
   const slides = Array.from({ length: targetCount }, (_, i) => allSlides[i % allSlides.length]);
 
   return {
-    title: `Campaña: ${niche}`,
+    title: `Campaña ${brandName} — ${niche}`,
     designTheme: {
       primaryColor: "#0a0a0a",
       accentColor: "#facc15",
@@ -325,12 +325,24 @@ Todos los slides deben sentirse como PARTE DE LA MISMA CAMPAÑA. Esto significa:
         `Copy Generation Timeout: ${model}`
       );
       const parsed = JSON.parse(cleanJSON(response.text || '{}'));
-      // Validate the response has actual slides with real content
-      if (parsed?.slides?.length > 0 && parsed.slides[0]?.headline && !parsed.slides[0].headline.includes('TU SECTOR')) {
-        return parsed;
+      // Validate: has real slides, not generic, and not a literal copy of the prompt
+      if (parsed?.slides?.length > 0 && parsed.slides[0]?.headline) {
+        const h = parsed.slides[0].headline.toLowerCase().replace(/[*_]/g, '');
+        const promptWords = prompt.toLowerCase().trim();
+        const isGeneric = h.includes('tu sector') || h.includes('tu negocio');
+        // Check if headline is literally just the prompt or starts with it
+        const isLiteral = promptWords.length > 10 && (
+          h.includes(promptWords) || 
+          promptWords.includes(h.replace(/[^a-záéíóúñü\s]/g, '').trim()) ||
+          h.startsWith(promptWords.slice(0, 20))
+        );
+        if (!isGeneric && !isLiteral) {
+          return parsed;
+        }
+        console.warn(`${model} returned generic or literal copy, trying next model... Headline was: "${parsed.slides[0].headline}"`);
+      } else {
+        console.warn(`${model} returned empty/no slides, trying next model...`);
       }
-      // If slides are empty or generic, try next model
-      console.warn(`${model} returned generic/empty slides, trying next model...`);
     } catch (err: any) {
       console.warn(`${model} copy gen failed:`, err.message);
     }
