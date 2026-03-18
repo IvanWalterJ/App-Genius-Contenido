@@ -373,18 +373,23 @@ export const generateSlideImage = async (
   let fullPrompt = `${stylePrefix} ${prompt}. Aspect ratio strictly ${aspectRatio}. Optimized for ${aspectRatio} viewport. Professional photography, high end production.`;
 
   // TEXT BAKING: If headline is provided, bake text into the image (for single-image and volume modes)
-  if (headline && headline.trim()) {
+  // Strip markdown formatting (*bold*, _italic_) before sending to image generation
+  const cleanHeadline = headline?.replace(/[*_]/g, '').trim();
+  const cleanSubHeadline = subHeadline?.replace(/[*_]/g, '').trim();
+  
+  if (cleanHeadline && cleanHeadline.length > 0) {
     fullPrompt += `\n\nTEXT ON IMAGE (MANDATORY):
 You MUST render the following text DIRECTLY ON the image as part of the design. The text must be:
 - PERFECTLY LEGIBLE, with zero spelling errors
 - Styled as premium advertising typography
 - Font style: ${headlineFont || 'bold sans-serif, modern and clean'}
 - Use high contrast against the background for readability
-- HEADLINE (large, bold, dominant): "${headline}"`;
-    if (subHeadline && subHeadline.trim()) {
-      fullPrompt += `\n- SUB-HEADLINE (smaller, below the headline): "${subHeadline}"`;
+- Render ALL text in ONE SINGLE AREA of the image (either top or bottom). DO NOT repeat or duplicate the text in multiple positions.
+- HEADLINE (large, bold, dominant): "${cleanHeadline}"`;
+    if (cleanSubHeadline && cleanSubHeadline.length > 0) {
+      fullPrompt += `\n- SUB-HEADLINE (smaller, directly below the headline, same area): "${cleanSubHeadline}"`;
     }
-    fullPrompt += `\nThe text IS the centerpiece of this ad visual. It must look like a professional advertising poster with integrated typography.`;
+    fullPrompt += `\nThe text IS the centerpiece of this ad visual. Render it EXACTLY ONCE. It must look like a professional advertising poster with integrated typography. NEVER duplicate or repeat any text.`;
   } else {
     // CAROUSEL MODE: Explicitly prohibit any text
     fullPrompt += `\n\nCRITICAL: Do NOT include ANY text, words, letters, numbers, watermarks, or typography in this image. This is a VISUAL-ONLY image. Generate ONLY the visual scene described above with ZERO text elements.`;
@@ -396,7 +401,7 @@ You MUST render the following text DIRECTLY ON the image as part of the design. 
 
   // Image generation models — ordered by quality/availability
   // When text is baked, prioritize nano-banana (best text rendering)
-  const imgModels = (headline && headline.trim()) ? [
+  const imgModels = (cleanHeadline && cleanHeadline.length > 0) ? [
     'models/nano-banana-2-pro-preview',
     'models/gemini-3.1-flash-image-preview',
     'models/gemini-2.5-flash-image',

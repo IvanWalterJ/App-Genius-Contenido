@@ -109,9 +109,9 @@ export const DISRUPTIVE_STYLES = [
   'Hyper-realistic 3D surrealism, floating objects, dreamlike atmosphere, liquid metal textures, impossible physics, vibrant neon contrast. ',
   'Retro-future synthwave, 80s movie poster aesthetic, heavy grain, chrome effects, deep purples and oranges, cinematic lighting. ',
   'Hand-drawn experimental charcoal sketch, raw energy, messy lines, high artistic value, black and white with one bold accent color. ',
-  'Acid graphic design style, distorted typography, glitch effects, thermal camera colors, high energy, chaotic layout, maximalist. ',
+  'Dark cinematic noir, dramatic split lighting, deep blacks with sharp golden highlights, editorial fashion photography, mysterious powerful mood, premium production value. ',
   'Professional high-end fashion editorial, avant-garde, dramatic shadows, mysterious mood, unusual camera angles, vogue aesthetic. ',
-  'Claymation/Stop-motion style, handcrafted tactile feel, imperfections, soft warm lighting, cute but slightly weird, colorful. ',
+  'Architectural brutalism meets advertising, raw concrete textures, strong geometric composition, bold negative space, moody industrial lighting, monochromatic with one striking accent color. ',
   'Dark technical blueprint style, vector lines, scientific diagrams, futuristic UI elements, industrial aesthetic, blueprint blue and white. ',
-  'Vivid watercolor and ink splash, messy but elegant, street art influences, vibrant drips, mixed media collage style. '
+  'Premium dark studio photography, razor-sharp product lighting, deep rich blacks, selective warm accent lighting, luxury brand aesthetic, apple-style minimalism. '
 ];
