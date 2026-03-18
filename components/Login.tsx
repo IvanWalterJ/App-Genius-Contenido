@@ -1,21 +1,34 @@
-
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
-import { LogIn, Mail, Lock, Loader2, Sparkles } from 'lucide-react';
+import { LogIn, Mail, Lock, Loader2, Sparkles, UserPlus } from 'lucide-react';
 
 export const Login: React.FC = () => {
     const [loading, setLoading] = useState(false);
+    const [isRegistering, setIsRegistering] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [message, setMessage] = useState<string | null>(null);
 
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) setError(error.message);
+        setMessage(null);
+
+        if (isRegistering) {
+            const { data, error } = await supabase.auth.signUp({ email, password });
+            if (error) {
+                setError(error.message);
+            } else {
+                setMessage('Cuenta creada con éxito. Ya puedes iniciar sesión (si requiere verificación, revisa tu correo).');
+                setIsRegistering(false); 
+            }
+        } else {
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) setError(error.message);
+        }
+        
         setLoading(false);
     };
 
@@ -36,9 +49,11 @@ export const Login: React.FC = () => {
                     </div>
 
                     <h1 className="text-3xl font-black text-bone-white text-center mb-2 tracking-tighter uppercase font-brand">NovaAds AI</h1>
-                    <p className="text-neutral-400 text-center mb-8 text-sm font-medium">Acceso exclusivo para clientes premium</p>
+                    <p className="text-neutral-400 text-center mb-8 text-sm font-medium">
+                        {isRegistering ? 'Crea tu cuenta para comenzar' : 'Accede a tu cuenta de Nova Ads'}
+                    </p>
 
-                    <form onSubmit={handleLogin} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 ml-1">Email</label>
                             <div className="relative">
@@ -74,6 +89,12 @@ export const Login: React.FC = () => {
                                 {error}
                             </div>
                         )}
+                        
+                        {message && (
+                            <div className="bg-green-500/10 border border-green-500/20 text-green-400 text-sm py-3 px-4 rounded-xl">
+                                {message}
+                            </div>
+                        )}
 
                         <button
                             type="submit"
@@ -82,6 +103,11 @@ export const Login: React.FC = () => {
                         >
                             {loading ? (
                                 <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : isRegistering ? (
+                                <>
+                                    Crear Cuenta
+                                    <UserPlus className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                                </>
                             ) : (
                                 <>
                                     Entrar ahora
@@ -92,9 +118,17 @@ export const Login: React.FC = () => {
                     </form>
 
                     <div className="mt-8 pt-6 border-t border-white/5 text-center">
-                        <p className="text-xs text-neutral-500 font-bold tracking-widest uppercase">
-                            ¿No tienes acceso? Contacta con soporte
-                        </p>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsRegistering(!isRegistering);
+                                setError(null);
+                                setMessage(null);
+                            }}
+                            className="text-xs text-neutral-500 hover:text-accent-primary font-bold tracking-widest uppercase transition-colors"
+                        >
+                            {isRegistering ? '¿Ya tienes cuenta? Inicia sesión' : '¿No tienes cuenta? Regístrate gratis'}
+                        </button>
                     </div>
                 </div>
             </div>
