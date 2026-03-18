@@ -122,8 +122,6 @@ const App: React.FC = () => {
     const [isEnhancingPrompt, setIsEnhancingPrompt] = useState(false);
     const designInputRef = useRef<HTMLInputElement>(null);
 
-    // Text Mode (Baked by default for Nano Banana 2)
-    const [textMode, setTextMode] = useState<'overlay' | 'baked'>('baked');
     const [useAiDesign, setUseAiDesign] = useState(true);
 
     const [brandContext, setBrandContext] = useState<BrandContext>(() => {
@@ -315,7 +313,7 @@ const App: React.FC = () => {
             } else {
                 copyResult = await generateAdCopy(
                     prompt, genMode as 'carousel' | 'single-image' | 'angles-batch', intent, style, brandContext,
-                    designReferences.length > 0 ? designReferences : undefined, knowledgeBase || undefined, textMode,
+                    designReferences.length > 0 ? designReferences : undefined, knowledgeBase || undefined,
                     refImages.length > 0 ? refImages : undefined, slideCount
                 );
             }
@@ -333,7 +331,6 @@ const App: React.FC = () => {
                 mode: genMode,
                 visualStyle: style,
                 aspectRatio,
-                textMode: 'baked',
                 brandContext,
                 isAiDesign: useAiDesign,
                 primaryColor: (useAiDesign && copyResult.designTheme?.primaryColor) || '#050505',
@@ -409,9 +406,12 @@ const App: React.FC = () => {
                 try {
                     const slideAccent = (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor;
                     imageUrl = await generateSlideImage(
-                        updatedSlides[i].visualPrompt, style, useReferenceStyle, aspectRatio,
-                        updatedSlides[i].headline, 'baked', updatedSlides[i].subHeadline, slideAccent,
-                        genMode === 'angles-batch', updatedSlides[i].headlineFont,
+                        updatedSlides[i].visualPrompt, 
+                        style, 
+                        useReferenceStyle, 
+                        aspectRatio,
+                        slideAccent,
+                        genMode === 'angles-batch',
                         refImages.length > 0 ? refImages : undefined,
                         updatedSlides[i].customStyle,
                         designReferences.length > 0 ? designReferences : undefined
@@ -469,9 +469,12 @@ const App: React.FC = () => {
         const currentSlide = project.slides[slideIdx];
         try {
             const newUrl = await generateSlideImage(
-                currentSlide.visualPrompt, project.visualStyle, refImages.length > 0, project.aspectRatio,
-                currentSlide.headline, 'baked', currentSlide.subHeadline, userAccentColor,
-                project.mode === 'angles-batch', currentSlide.headlineFont,
+                currentSlide.visualPrompt, 
+                project.visualStyle, 
+                refImages.length > 0, 
+                project.aspectRatio,
+                userAccentColor,
+                project.mode === 'angles-batch',
                 refImages.length > 0 ? refImages : undefined,
                 currentSlide.customStyle,
                 designReferences.length > 0 ? designReferences : undefined
@@ -661,7 +664,7 @@ const App: React.FC = () => {
                     <div className="space-y-4">
                         <h1 className="text-3xl font-black uppercase tracking-tight text-bone-white">Acceso Pro Requerido</h1>
                         <p className="text-neutral-400 leading-relaxed font-medium">
-                            Para usar los modelos avanzados de generación de imágenes con texto perfecto (Gemini 3 Pro), necesitas conectar tu API Key de Google AI Studio.
+                            Para usar los modelos avanzados de generación de imágenes de alta fidelidad (Gemini 3 Pro), necesitas conectar tu API Key de Google AI Studio.
                         </p>
                     </div>
                     <button
@@ -1194,16 +1197,9 @@ const App: React.FC = () => {
                                             <SlideCard
                                                 id="active-slide-export"
                                                 slide={project.slides[activeSlideIdx]}
-                                                visualStyle={project.visualStyle}
-                                                accentGradient={userAccentColor ? `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}cc)` : project.accentGradient}
-                                                accentColor={userAccentColor || project.accentColor}
-                                                brandHandle={project.brandHandle}
                                                 index={activeSlideIdx}
-                                                isEditing={true}
-                                                onPositionChange={(x, y) => updateSlide(activeSlideIdx, { textPosition: { x, y } })}
                                                 aspectRatio={project.aspectRatio}
                                                 showSafeZones={showSafeZones}
-                                                textMode={project.textMode}
                                                 hideNumbering={genMode === 'angles-batch'}
                                             />
                                         </div>
@@ -1252,21 +1248,9 @@ const App: React.FC = () => {
                                         </button>
                                     </div>
 
-                                    {/* TEXT EDITOR TAB (Simplified for Baked Mode) */}
+                                    {/* TEXT EDITOR TAB */}
                                     {editorTab === 'text' && (
                                         <div className="space-y-5 animate-in fade-in duration-300">
-                                            <div className="p-6 text-center border border-white/5 rounded-3xl bg-black/40 flex flex-col items-center gap-4">
-                                                <div className="p-4 bg-accent-primary/10 rounded-full">
-                                                    <Sparkles className="w-8 h-8 text-accent-primary" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm text-accent-primary font-bold uppercase tracking-widest">IA: Engine de Respuesta Directa v4</p>
-                                                    <p className="text-xs text-neutral-400 mt-2 max-w-xs mx-auto leading-relaxed">
-                                                        El diseño y el texto están fusionados por la IA para un resultado ultra profesional.
-                                                        Para cambiar el copy, edita el texto abajo y pulsa <strong className="text-white">"NUEVA IMAGEN"</strong>.
-                                                    </p>
-                                                </div>
-                                            </div>
 
                                             <div className="space-y-4 p-5 bg-neutral-800/20 border border-white/5 rounded-2xl">
                                                 <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Texto del Botón (CTA)</label>

@@ -168,7 +168,6 @@ export const generateAdCopy = async (
   brandContext: BrandContext,
   styleReference?: string | string[],
   knowledgeBase?: string,
-  textMode: 'overlay' | 'baked' = 'overlay',
   characterReference?: string | string[],
   slideCount: number = 6
 ): Promise<any> => {
@@ -325,12 +324,8 @@ export const generateSlideImage = async (
   style: VisualStyle,
   useReference: boolean,
   aspectRatio: string = "3:4",
-  headline?: string,
-  textMode: 'overlay' | 'baked' = 'overlay',
-  subHeadline?: string,
   accentColor?: string,
   isBatch: boolean = false,
-  headlineFont?: string,
   characterReference?: string | string[],
   customStyle?: string,
   styleReference?: string | string[]
@@ -339,9 +334,6 @@ export const generateSlideImage = async (
   const ai = new GoogleGenAI({ apiKey });
 
   let stylePrefix = customStyle || STYLE_CONFIGS[style]?.promptPrefix || "";
-  // Clean asterisks for baked mode as Nano Banana 2 renders them literally
-  const cleanHeadline = headline?.replace(/\*/g, '') || "";
-  const cleanSubHeadline = subHeadline?.replace(/\*/g, '') || "";
 
   let fullPrompt = `${stylePrefix} ${prompt}. Aspect ratio strictly ${aspectRatio}. Optimized for ${aspectRatio} viewport. Professional photography, high end production.`;
 

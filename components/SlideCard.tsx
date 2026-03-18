@@ -5,16 +5,9 @@ import { ImageOff } from 'lucide-react';
 
 interface SlideCardProps {
   slide: Slide;
-  visualStyle: VisualStyle;
-  accentGradient: string;
-  accentColor?: string;
-  brandHandle?: string;
   index: number;
-  isEditing: boolean;
-  onPositionChange?: (x: number, y: number) => void;
   aspectRatio: AspectRatio;
   showSafeZones: boolean;
-  textMode: 'overlay' | 'baked';
   id?: string;
   hideNumbering?: boolean;
 }

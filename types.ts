@@ -78,7 +78,6 @@ export interface AdProject {
   mode: GenerationMode;
   visualStyle: VisualStyle;
   aspectRatio: AspectRatio;
-  textMode: 'overlay' | 'baked';
   brandContext?: BrandContext;
   isAiDesign?: boolean;
 
