@@ -25,6 +25,51 @@ import {
 
 const QUICK_COLORS = ['#ffffff', '#000000', '#06b6d4', '#8b5cf6', '#d946ef', '#f43f5e', '#3b82f6'];
 
+// Custom styled dropdown — replaces native <select> (looks like Windows XP otherwise)
+const CustomSelect: React.FC<{
+    value: string;
+    onChange: (value: string) => void;
+    options: Array<{ value: string; label: string }>;
+    className?: string;
+}> = ({ value, onChange, options, className = '' }) => {
+    const [open, setOpen] = useState(false);
+    const ref = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+    const selectedLabel = options.find(o => o.value === value)?.label || value;
+    return (
+        <div ref={ref} className={`relative ${className}`}>
+            <button
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                className="flex items-center gap-2 bg-black/50 border border-white/10 rounded-full px-4 py-2 text-xs font-bold text-bone-white hover:bg-white/10 hover:border-white/20 transition-all cursor-pointer whitespace-nowrap"
+            >
+                {selectedLabel}
+                <ChevronLeft className={`w-3 h-3 text-neutral-400 transition-transform duration-200 ${open ? 'rotate-90' : '-rotate-90'}`} />
+            </button>
+            {open && (
+                <div className="absolute top-full mt-2 left-0 z-[999] min-w-[170px] bg-[#141414] border border-white/10 rounded-2xl shadow-2xl shadow-black/70 overflow-hidden">
+                    {options.map(opt => (
+                        <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => { onChange(opt.value); setOpen(false); }}
+                            className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-colors hover:bg-white/5 ${opt.value === value ? 'text-accent-primary bg-accent-primary/10' : 'text-neutral-300'}`}
+                        >
+                            {opt.label}
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const App: React.FC = () => {
     const { user, profile, loading, signOut, refreshProfile } = useAuth();
     const [hasKey, setHasKey] = useState(false);
@@ -81,11 +126,12 @@ const App: React.FC = () => {
     const [textMode, setTextMode] = useState<'overlay' | 'baked'>('baked');
     const [useAiDesign, setUseAiDesign] = useState(true);
 
-    const [brandContext, setBrandContext] = useState<BrandContext>({
-        name: '',
-        niche: '',
-        targetAudience: '',
-        tone: 'Profesional y Persuasivo'
+    const [brandContext, setBrandContext] = useState<BrandContext>(() => {
+        try {
+            const saved = localStorage.getItem('novaads_brand_context');
+            if (saved) return JSON.parse(saved);
+        } catch {}
+        return { name: '', niche: '', targetAudience: '', tone: 'Profesional y Persuasivo' };
     });
 
     const [designReferences, setDesignReferences] = useState<string[]>([]);
@@ -505,6 +551,11 @@ const App: React.FC = () => {
         });
     };
 
+    // Persist Business DNA to localStorage whenever it changes
+    useEffect(() => {
+        try { localStorage.setItem('novaads_brand_context', JSON.stringify(brandContext)); } catch {}
+    }, [brandContext]);
+
     // Persist project to history whenever it changes (outside the setProject updater)
     useEffect(() => {
         if (!project) return;
@@ -920,51 +971,50 @@ const App: React.FC = () => {
                                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
 
                                             {/* Format Selector */}
-                                            <div className="relative">
-                                                <select value={genMode} onChange={(e) => { setGenMode(e.target.value as GenerationMode); setSlideCount(e.target.value === 'single-image' ? 1 : 6); }} className="bg-black/40 border border-white/5 rounded-full px-4 py-2 text-xs font-bold text-bone-white appearance-none outline-none cursor-pointer pl-4 pr-8 text-center md:text-left transition-all hover:bg-white/5">
-                                                    <option value="single-image">Una Imagen</option>
-                                                    <option value="carousel">Carrusel (IA)</option>
-                                                    <option value="manual-carousel">Carrusel Manual</option>
-                                                    <option value="angles-batch">Mezcla (Volumen)</option>
-                                                </select>
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                                    <ChevronLeft className="w-3 h-3 -rotate-90 text-neutral-500" />
-                                                </div>
-                                            </div>
+                                            <CustomSelect
+                                                value={genMode}
+                                                onChange={(v) => { setGenMode(v as GenerationMode); setSlideCount(v === 'single-image' ? 1 : 6); }}
+                                                options={[
+                                                    { value: 'single-image', label: 'Una Imagen' },
+                                                    { value: 'carousel', label: 'Carrusel (IA)' },
+                                                    { value: 'manual-carousel', label: 'Carrusel Manual' },
+                                                    { value: 'angles-batch', label: 'Mezcla (Volumen)' },
+                                                ]}
+                                            />
 
                                             {/* Style Selector */}
-                                            <div className="relative group">
-                                                <select value={style} onChange={(e) => setStyle(e.target.value as VisualStyle)} className="bg-black/40 border border-white/10 rounded-full px-4 py-2 text-xs font-bold text-bone-white appearance-none outline-none focus:bg-white/10 transition-colors cursor-pointer pl-4 pr-8 uppercase tracking-widest text-center md:text-left hover:bg-white/5">
-                                                    {(Object.keys(STYLE_CONFIGS)).map(s => (
-                                                        <option key={s} value={s} className="bg-deep-surface text-bone-white">{STYLE_CONFIGS[s].name}</option>
-                                                    ))}
-                                                </select>
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                                    <ChevronLeft className="w-3 h-3 -rotate-90 text-neutral-400" />
-                                                </div>
-                                            </div>
+                                            <CustomSelect
+                                                value={style}
+                                                onChange={(v) => setStyle(v as VisualStyle)}
+                                                options={Object.keys(STYLE_CONFIGS).map(s => ({ value: s, label: STYLE_CONFIGS[s].name }))}
+                                            />
 
                                             {/* Aspect Ratio */}
-                                            <div className="relative">
-                                                <select value={aspectRatio} onChange={(e) => setAspectRatio(e.target.value as AspectRatio)} className="bg-black/40 border border-white/5 rounded-full px-4 py-2 text-xs font-bold text-bone-white appearance-none outline-none cursor-pointer pl-4 pr-8 text-center md:text-left transition-all hover:bg-white/5">
-                                                    <option value="1:1">Feed (1:1)</option>
-                                                    <option value="3:4">Portrait (3:4)</option>
-                                                    <option value="9:16">Story (9:16)</option>
-                                                </select>
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                                                    <ChevronLeft className="w-3 h-3 -rotate-90 text-neutral-500" />
-                                                </div>
-                                            </div>
+                                            <CustomSelect
+                                                value={aspectRatio}
+                                                onChange={(v) => setAspectRatio(v as AspectRatio)}
+                                                options={[
+                                                    { value: '1:1', label: 'Feed (1:1)' },
+                                                    { value: '3:4', label: 'Portrait (3:4)' },
+                                                    { value: '9:16', label: 'Story (9:16)' },
+                                                ]}
+                                            />
 
-                                            {/* Options Pills */}
-                                            {genMode !== 'single-image' && (
-                                                <div className="flex items-center bg-black/40 rounded-full border border-white/5 px-2 py-1.5 h-[34px] ml-1">
-                                                    <span className="text-[11px] font-bold px-2 min-w-[50px] text-center text-bone-white">{slideCount} imgs</span>
+                                            {/* Slide count — only for IA carousel and volume modes */}
+                                            {(genMode === 'carousel' || genMode === 'angles-batch') && (
+                                                <div className="flex items-center bg-black/50 rounded-full border border-white/10 px-2 py-1.5 h-[34px]">
+                                                    <span className="text-[11px] font-bold px-2 min-w-[50px] text-center text-bone-white">{slideCount} slides</span>
                                                     <div className="flex gap-1 border-l border-white/10 pl-2">
                                                         <button onClick={() => setSlideCount(prev => Math.max(2, prev - 1))} className="hover:text-accent-primary text-neutral-400 p-0.5"><Minus className="w-3 h-3" /></button>
                                                         <button onClick={() => setSlideCount(prev => Math.min(10, prev + 1))} className="hover:text-accent-primary text-neutral-400 p-0.5"><Plus className="w-3 h-3" /></button>
                                                     </div>
                                                 </div>
+                                            )}
+                                            {/* Manual carousel: show live count */}
+                                            {genMode === 'manual-carousel' && (
+                                                <span className="text-[11px] font-bold px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/20 rounded-full text-accent-primary">
+                                                    {manualSlides.filter(s => s.headline.trim()).length} slides definidos
+                                                </span>
                                             )}
                                         </div>
 
@@ -980,54 +1030,64 @@ const App: React.FC = () => {
 
                                 {/* Manual Carousel Slide Editor */}
                                 {genMode === 'manual-carousel' && (
-                                    <div className="w-full max-w-[800px] mt-4 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <p className="text-xs font-black uppercase tracking-widest text-accent-primary">Carrusel Manual</p>
-                                                <p className="text-[10px] text-neutral-500 mt-0.5">Define el texto de cada slide. La IA genera las imágenes automáticamente.</p>
-                                            </div>
-                                            <button
-                                                onClick={() => setManualSlides(prev => [...prev, { headline: '', subHeadline: '' }])}
-                                                disabled={manualSlides.length >= 10}
-                                                className="text-xs font-bold px-3 py-1.5 bg-accent-primary/10 border border-accent-primary/30 text-accent-primary rounded-full hover:bg-accent-primary/20 transition-all disabled:opacity-40 flex items-center gap-1"
-                                            >
-                                                <Plus className="w-3 h-3" /> Añadir Slide
-                                            </button>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {manualSlides.map((slide, idx) => (
-                                                <div key={idx} className="bg-black/40 border border-white/5 rounded-2xl p-4 space-y-3 group">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-neutral-500">Slide {idx + 1}</span>
-                                                        {manualSlides.length > 1 && (
-                                                            <button onClick={() => setManualSlides(prev => prev.filter((_, i) => i !== idx))} className="opacity-0 group-hover:opacity-100 transition-opacity text-neutral-600 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/10">
-                                                                <Minus className="w-3 h-3" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        value={slide.headline}
-                                                        onChange={(e) => setManualSlides(prev => prev.map((s, i) => i === idx ? { ...s, headline: e.target.value } : s))}
-                                                        placeholder="Titular principal *"
-                                                        className="w-full bg-transparent border-b border-white/10 pb-2 text-sm font-bold text-white placeholder:text-neutral-700 outline-none focus:border-accent-primary/50 transition-colors"
-                                                    />
-                                                    <input
-                                                        type="text"
-                                                        value={slide.subHeadline}
-                                                        onChange={(e) => setManualSlides(prev => prev.map((s, i) => i === idx ? { ...s, subHeadline: e.target.value } : s))}
-                                                        placeholder="Subtítulo o descripción"
-                                                        className="w-full bg-transparent border-b border-white/5 pb-2 text-xs text-neutral-400 placeholder:text-neutral-700 outline-none focus:border-accent-primary/30 transition-colors"
-                                                    />
-                                                    <input
-                                                        type="text"
-                                                        value={slide.cta || ''}
-                                                        onChange={(e) => setManualSlides(prev => prev.map((s, i) => i === idx ? { ...s, cta: e.target.value } : s))}
-                                                        placeholder="Botón CTA (opcional)"
-                                                        className="w-full bg-transparent text-xs text-neutral-500 placeholder:text-neutral-700 outline-none"
-                                                    />
+                                    <div className="w-full max-w-[800px] mt-5">
+                                        <div className="bg-deep-surface/80 border border-white/8 rounded-3xl p-5 space-y-4 backdrop-blur-xl">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-xs font-black uppercase tracking-widest text-accent-primary">Slides del Carrusel</p>
+                                                    <p className="text-[10px] text-neutral-500 mt-0.5">Escribe el texto de cada slide. La IA genera la imagen perfecta para cada uno.</p>
                                                 </div>
-                                            ))}
+                                                <button
+                                                    onClick={() => setManualSlides(prev => [...prev, { headline: '', subHeadline: '' }])}
+                                                    disabled={manualSlides.length >= 10}
+                                                    className="text-xs font-bold px-3 py-2 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all disabled:opacity-40 flex items-center gap-1.5"
+                                                >
+                                                    <Plus className="w-3 h-3" /> Añadir Slide
+                                                </button>
+                                            </div>
+                                            <div className="space-y-2">
+                                                {manualSlides.map((slide, idx) => (
+                                                    <div key={idx} className={`border rounded-2xl p-4 space-y-2.5 group transition-colors ${slide.headline.trim() ? 'bg-black/30 border-white/10' : 'bg-black/20 border-white/5'}`}>
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center ${slide.headline.trim() ? 'bg-accent-primary text-black' : 'bg-white/5 text-neutral-600'}`}>{idx + 1}</span>
+                                                                {!slide.headline.trim() && <span className="text-[10px] text-neutral-600 font-bold">Sin contenido — no se generará</span>}
+                                                            </div>
+                                                            {manualSlides.length > 1 && (
+                                                                <button onClick={() => setManualSlides(prev => prev.filter((_, i) => i !== idx))} className="opacity-0 group-hover:opacity-100 transition-opacity text-neutral-600 hover:text-red-400 p-1 rounded-lg hover:bg-red-500/10">
+                                                                    <X className="w-3 h-3" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        <input
+                                                            type="text"
+                                                            value={slide.headline}
+                                                            onChange={(e) => setManualSlides(prev => prev.map((s, i) => i === idx ? { ...s, headline: e.target.value } : s))}
+                                                            placeholder="Titular principal *"
+                                                            className="w-full bg-transparent border-b border-white/10 pb-1.5 text-sm font-bold text-white placeholder:text-neutral-700 outline-none focus:border-accent-primary/50 transition-colors"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            value={slide.subHeadline}
+                                                            onChange={(e) => setManualSlides(prev => prev.map((s, i) => i === idx ? { ...s, subHeadline: e.target.value } : s))}
+                                                            placeholder="Subtítulo o descripción"
+                                                            className="w-full bg-transparent border-b border-white/5 pb-1.5 text-xs text-neutral-400 placeholder:text-neutral-700 outline-none focus:border-white/20 transition-colors"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            value={slide.cta || ''}
+                                                            onChange={(e) => setManualSlides(prev => prev.map((s, i) => i === idx ? { ...s, cta: e.target.value } : s))}
+                                                            placeholder="CTA: ej. COMPRAR AHORA (opcional)"
+                                                            className="w-full bg-transparent text-[11px] text-neutral-600 placeholder:text-neutral-700 outline-none"
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {refImages.length === 0 && (
+                                                <p className="text-[10px] text-neutral-600 border-t border-white/5 pt-3">
+                                                    💡 Para consistencia de personajes entre slides, sube una foto de referencia en <button onClick={() => setSidebarMode('brands')} className="text-accent-primary underline">Business DNA</button>
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 )}
