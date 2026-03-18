@@ -27,11 +27,11 @@ const cleanJSON = (text: string) => {
 };
 
 // --- SAFE MODE FALLBACK ---
-const getSafeFallback = (prompt: string, style: string, brand: BrandContext, type: string): any => {
+const getSafeFallback = (prompt: string, style: string, brand: BrandContext, type: string, slideCount: number = 6): any => {
   const niche = brand.niche || "tu sector";
   const audience = brand.targetAudience || "tu audiencia";
 
-  const slides = [
+  const allSlides = [
     {
       headline: `ATENCIÓN: *${niche.toUpperCase()}* para ${brand.name || 'ti'}`,
       subHeadline: `Descubre cómo ayudamos a ${audience} a lograr resultados extraordinarios con nuestro método probado.`,
@@ -74,8 +74,41 @@ const getSafeFallback = (prompt: string, style: string, brand: BrandContext, typ
       visualPrompt: `Dynamic abstract geometric composition, premium production for ${niche}`,
       layout: "bottom-heavy",
       angleLabel: "CIERRE"
+    },
+    {
+      headline: "¿Por qué *Nosotros*?",
+      subHeadline: `Más de 1,000 clientes en ${niche} ya confían en nosotros. Resultados comprobados, sin excusas.`,
+      visualPrompt: `Trust and credibility imagery for ${niche}, professional studio lighting`,
+      layout: "centered",
+      angleLabel: "AUTORIDAD"
+    },
+    {
+      headline: "El *Secreto* que cambia todo",
+      subHeadline: `Lo que los líderes de ${niche} saben y aplican cada día. ¿Estás listo para saberlo?`,
+      visualPrompt: `Mysterious reveal concept for ${niche}, dramatic cinematic lighting`,
+      layout: "centered",
+      angleLabel: "CURIOSIDAD"
+    },
+    {
+      headline: "Casos de *Éxito* reales",
+      subHeadline: `${audience} como tú lograron resultados extraordinarios en ${niche} en tiempo récord.`,
+      visualPrompt: `Success celebration related to ${niche}, warm golden hour lighting`,
+      layout: "top-heavy",
+      angleLabel: "SOCIAL PROOF"
+    },
+    {
+      headline: "Última *Oportunidad*",
+      subHeadline: `Las plazas son limitadas y el precio sube pronto. Actúa ahora o pierde tu ventaja en ${niche}.`,
+      cta: "RESERVAR MI LUGAR",
+      visualPrompt: `Urgency concept for ${niche}, red and gold dramatic composition`,
+      layout: "bottom-heavy",
+      angleLabel: "URGENCIA"
     }
   ];
+
+  const targetCount = type === 'single-image' ? 1 : Math.min(slideCount, allSlides.length);
+  // If we need more slides than available templates, cycle through them
+  const slides = Array.from({ length: targetCount }, (_, i) => allSlides[i % allSlides.length]);
 
   return {
     title: `Campaña: ${niche}`,
@@ -85,7 +118,7 @@ const getSafeFallback = (prompt: string, style: string, brand: BrandContext, typ
       headlineFont: "font-brand",
       subHeadlineFont: "font-modern"
     },
-    slides: type === 'single-image' ? [slides[0]] : slides
+    slides
   };
 };
 
@@ -112,20 +145,17 @@ export const getApiKey = () => {
 export const enhancePrompt = async (rawPrompt: string): Promise<string> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
-  try {
-    const response = await withTimeout(
-      ai.models.generateContent({
-        model: "models/gemini-1.5-flash",
-        contents: [{ parts: [{ text: `Actúa como un experto en copywriting de respuesta directa. Optimiza el siguiente prompt para que la IA genere mejores imágenes y textos de venta. REQUISITO: El resultado debe estar en ESPAÑOL y ser conciso. Input: "${rawPrompt}". Devuelve solo el prompt optimizado sin etiquetas ni introducciones.` }] }],
-      }),
-      15000,
-      "Enhance Prompt Timeout"
-    );
-    return response.text?.trim() || rawPrompt;
-  } catch (e: any) {
-    console.error("Enhance Prompt Error:", e.message);
-    return rawPrompt;
-  }
+  const response = await withTimeout(
+    ai.models.generateContent({
+      model: "models/gemini-2.0-flash",
+      contents: [{ parts: [{ text: `Eres un experto en copywriting de respuesta directa y marketing de alto impacto. Optimiza el siguiente prompt de campaña publicitaria para que la IA genere mejores imágenes y textos de venta. REGLAS: (1) Mantén EXACTAMENTE el mismo objetivo de negocio. (2) Agrega contexto visual, emocional y de audiencia. (3) Sé específico con el nicho y el dolor del cliente. (4) El resultado DEBE estar en ESPAÑOL. (5) Devuelve SOLO el prompt optimizado, sin comentarios ni introducciones.\n\nPrompt original: "${rawPrompt}"` }] }],
+    }),
+    15000,
+    "Enhance Prompt Timeout"
+  );
+  const result = response.text?.trim();
+  if (!result) throw new Error("La IA no devolvió un prompt optimizado.");
+  return result;
 };
 
 export const generateAdCopy = async (
@@ -149,9 +179,9 @@ export const generateAdCopy = async (
   let sysInstruction = `Rol: Director Creativo y Copywriter de Respuesta Directa de Élite, especializado en marketing de impacto y psicología de ventas de alto CTR.
   
   ## BRIEF CREATIVO
-  El usuario ha proporcionado una IDEA/CONCEPTO como punto de partida. Tu trabajo es INTERPRETARLA y TRANSFORMARLA en un copy poderoso.
-  NO copies el texto del usuario literalmente. Úsalo como inspiración para crear algo ORIGINAL, POTENTE y que conecte EMOCIONALMENTE.
-  
+  El usuario ha proporcionado instrucciones específicas. Tu trabajo es CUMPLIRLAS AL PIE DE LA LETRA para los aspectos estructurales (número de slides, tema, producto, servicio, ángulos pedidos) y ELEVAR el copywriting a nivel profesional de respuesta directa.
+  Si el usuario pide un número específico de slides, DEBES generar EXACTAMENTE ese número. Si pide slides sobre temas específicos, DEBES respetarlos. El brief del usuario es una ORDEN, no una sugerencia.
+
   ## CONTEXTO DE MARCA (OBLIGATORIO - PERSONALIZA TODO A ESTO):
   - Nombre de Marca: ${brandContext.name || '(sin nombre)'}
   - Sector/Nicho: ${brandContext.niche || '(sin nicho)'}
@@ -278,7 +308,7 @@ export const generateAdCopy = async (
     }
   }
 
-  return getSafeFallback(prompt, style, brandContext, type);
+  return getSafeFallback(prompt, style, brandContext, type, slideCount);
 };
 
 export const generateSlideImage = async (
@@ -403,16 +433,41 @@ export const regenerateSlideCopy = async (
 ): Promise<any> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
-  try {
-    const response = await ai.models.generateContent({
-      model: "models/gemini-1.5-flash",
-      contents: [{ parts: [{ text: `Rewrite ad copy. Slide ${slideIndex + 1}/${totalSlides}. Goal: ${projectGoal}. Current: ${currentHeadline}. Output JSON {headline, subHeadline, cta}.` }] }],
+  const positionMap: Record<number, string> = {
+    0: "apertura/gancho (debe capturar atención inmediatamente)",
+    1: "problema/dolor (profundiza el dolor del cliente)",
+    2: "solución (presenta la propuesta de valor)",
+    3: "prueba/beneficio (demuestra resultados reales)",
+    4: "cierre/CTA (urgencia para que tome acción ahora)"
+  };
+  const position = positionMap[slideIndex] || `slide ${slideIndex + 1} de ${totalSlides}`;
+  const response = await withTimeout(
+    ai.models.generateContent({
+      model: "models/gemini-2.0-flash",
+      contents: [{ parts: [{ text: `Eres un copywriter de respuesta directa de élite. Reescribe el copy publicitario para este slide. TODO EL OUTPUT DEBE SER EN ESPAÑOL.
+
+CONTEXTO:
+- Objetivo de la campaña: ${projectGoal}
+- Posición en el carrusel: ${position}
+- Headline actual: "${currentHeadline}"
+- Estilo visual: ${style}
+- Intención: ${intent}
+
+REGLAS:
+1. El nuevo headline debe ser MÁS IMPACTANTE que el actual
+2. Usa gatillos mentales: curiosidad, urgencia, dolor, promesa específica
+3. El subHeadline debe amplificar y complementar el headline
+4. La CTA debe crear acción inmediata (si aplica a este slide)
+5. TODO en ESPAÑOL, lenguaje directo y poderoso
+6. Máximo 10 palabras en el headline
+
+Devuelve SOLO este JSON: {"headline": "...", "subHeadline": "...", "cta": "..."}` }] }],
       config: { responseMimeType: "application/json" }
-    });
-    return JSON.parse(cleanJSON(response.text || '{}'));
-  } catch (e) {
-    return { headline: currentHeadline, subHeadline: "" };
-  }
+    }),
+    15000,
+    "Regenerate Copy Timeout"
+  );
+  return JSON.parse(cleanJSON(response.text || '{}'));
 };
 
 export const magicRewrite = async (text: string, tone: string): Promise<string> => {
@@ -437,29 +492,26 @@ export const editImage = async (base64Image: string, prompt: string): Promise<st
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   const base64Data = base64Image.split(',')[1] || base64Image;
-  try {
-    const response = await withTimeout(
-      ai.models.generateContent({
-        model: 'models/gemini-1.5-flash',
-        contents: [{
-          parts: [
-            { inlineData: { data: base64Data, mimeType: "image/png" } },
-            { text: prompt }
-          ]
-        }]
-      }),
-      20000,
-      "Edit Image Timeout"
-    );
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if ((part as any).inlineData?.data) {
-        return `data:image/png;base64,${(part as any).inlineData.data}`;
-      }
+  const response = await withTimeout(
+    ai.models.generateContent({
+      model: 'models/gemini-2.0-flash-exp-image-generation',
+      contents: [{
+        parts: [
+          { inlineData: { data: base64Data, mimeType: "image/png" } },
+          { text: `Edit this image: ${prompt}. Keep the same composition and subject but apply the requested changes. Return the edited image.` }
+        ]
+      }],
+      config: { responseModalities: ['IMAGE', 'TEXT'] }
+    }),
+    30000,
+    "Edit Image Timeout"
+  );
+  for (const part of response.candidates?.[0]?.content?.parts || []) {
+    if ((part as any).inlineData?.data) {
+      return `data:image/png;base64,${(part as any).inlineData.data}`;
     }
-    return base64Image;
-  } catch (e) {
-    return base64Image;
   }
+  throw new Error("El modelo no devolvió una imagen editada. Intenta con una descripción diferente.");
 };
 export const generateVideo = async (prompt: string, images: string[]): Promise<string> => {
   console.log("Video generation not implemented in this version.");

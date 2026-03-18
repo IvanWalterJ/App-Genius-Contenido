@@ -37,13 +37,6 @@ export const STYLE_CONFIGS: Record<VisualStyle, {
     desc: 'Entornos profesionales de noche, iluminados por pantallas y lámparas cálidas (Referencia Advertise Precision).',
     preview: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=400&h=500'
   },
-  'mystic-neon': {
-    promptPrefix: 'Surreal dark 3D composition, intense violet and magenta lighting, glowing mystical elements. Massive bold sans-serif headline with a stark white inner glow at the bottom center, smaller elegant subtitles underneath, heavy compositing, high-end editorial graphic design. ',
-    defaultOverlay: 0.5,
-    name: 'Mystic Flow',
-    desc: 'Composiciones mágicas y surreales con fuerte luz violeta, como renders 3D de alta gama (Referencia Dinheiro).',
-    preview: 'https://images.unsplash.com/photo-1567007798363-228cf0bfeb4a?auto=format&fit=crop&q=80&w=400&h=500'
-  },
   'satirical-split': {
     promptPrefix: 'Split screen composition layout, studio portrait photography, humorous before-and-after comparison. Large clean modern web sans-serif header across the top, high contrast typography on a split dark/light grey background, billboard advertisement typographic hierarchy, highly polished. ',
     defaultOverlay: 0.2,
@@ -51,26 +44,12 @@ export const STYLE_CONFIGS: Record<VisualStyle, {
     desc: 'Composiciones en pantalla dividida o formato "Mugshot". Altamente efectivo para contrastes y humor visual (Referencia Ad-ichu).',
     preview: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=400&h=500'
   },
-  'cyber-glow': {
-    promptPrefix: 'Dark UI graphic design aesthetic, wireframe background grids, glowing neon yellow outlines. Very heavy bold display typography, bold stylistic headers, floating pill-shaped text bubbles, high contrast yellow and white text layout, strictly technological vector aesthetic. ',
-    defaultOverlay: 0.8,
-    name: 'Neon Grid UI',
-    desc: 'Gráficos vectoriales oscuros con fuerte resplandor (glow) y grillas. Ideal para datos curiosos o tech (Referencia Did you know).',
-    preview: 'https://images.unsplash.com/photo-1614729939124-032f0b56c4ce?auto=format&fit=crop&q=80&w=400&h=500'
-  },
   'brutalism': {
     promptPrefix: 'Brutalist graphic design, high contrast, raw unedited photography style, harsh flash photography, bold composition, disruptive, scroll-stopping, highly saturated accents. ',
     defaultOverlay: 0.4,
     name: 'Brutalismo',
     desc: 'Crudo, directo, alto contraste. Ideal para romper el patrón visual y captar atención inmediata.',
     preview: 'https://images.unsplash.com/photo-1498084393753-b411b2d26b34?auto=format&fit=crop&q=80&w=400&h=500'
-  },
-  'neon': {
-    promptPrefix: 'Cyberpunk aesthetic, dark background, glowing neon accents, highly stylized, futuristic, moody lighting, high end 3d render style. ',
-    defaultOverlay: 0.6,
-    name: 'Neon Cyber',
-    desc: 'Oscuro con acentos brillantes. Perfecto para nichos tech, gaming o marketing moderno.',
-    preview: 'https://images.unsplash.com/photo-1563205762-f8b1bbdc51ac?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'clean': {
     promptPrefix: 'Ultra clean corporate aesthetic, minimalist, lots of negative space, bright soft lighting, professional photography, trustworthy, modern SaaS style. ',
@@ -85,13 +64,6 @@ export const STYLE_CONFIGS: Record<VisualStyle, {
     name: 'Orgánico',
     desc: 'Tonos tierra, luz natural. Conecta emocionalmente, ideal para salud, bienestar o marcas personales.',
     preview: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&q=80&w=400&h=500'
-  },
-  'pop-art': {
-    promptPrefix: 'Pop art style, extremely vibrant colors, playful, energetic, highly saturated, bold graphic design layout. ',
-    defaultOverlay: 0.4,
-    name: 'Pop Art',
-    desc: 'Colores vibrantes y energía. Para marcas jóvenes, e-commerce o productos de consumo.',
-    preview: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&q=80&w=400&h=500'
   },
   'luxury': {
     promptPrefix: 'Dark luxury aesthetic, moody studio lighting, elegant, premium, high-end editorial fashion photography style, black and gold tones. ',
@@ -113,6 +85,13 @@ export const STYLE_CONFIGS: Record<VisualStyle, {
     name: '3D Clay',
     desc: 'Amigable y moderno. Muy popular en startups y apps B2C.',
     preview: 'https://images.unsplash.com/photo-1633420894548-2629b3d1b7ee?auto=format&fit=crop&q=80&w=400&h=500'
+  },
+  'novela-grafica': {
+    promptPrefix: 'Adult Latin American graphic novel illustration, firm bold ink outlines, cross-hatching shadows, no smooth digital gradients, high contrast black ink. Visual references: Blacksad by Juan Diaz Canales, Sin City by Frank Miller, Essex County by Jeff Lemire. Dominant dark carbon black #0D0D0D background, warm amber gold #C8913A accents, cool slate blue #2C3E50 secondary, off-white #F5F0E8 text areas, dirty grey mid-tones. Never anime style, never Pixar 3D, never cartoon. Dramatic film noir lighting, gritty realism. ',
+    defaultOverlay: 0.45,
+    name: 'Novela Gráfica',
+    desc: 'Trazo de tinta firme, sombras con hatching. Referentes: Blacksad, Sin City, Essex County. Nunca anime.',
+    preview: 'https://images.unsplash.com/photo-1612036782180-6f0b6cd846fe?auto=format&fit=crop&q=80&w=400&h=500'
   }
 };
 

@@ -54,12 +54,13 @@ const App: React.FC = () => {
     const [videoPrompt, setVideoPrompt] = useState('');
     const [isVideoGenerating, setIsVideoGenerating] = useState(false);
     const [videoProgress, setVideoProgress] = useState('');
+    const [winnerToast, setWinnerToast] = useState(false);
 
     // Editor Tabs
     const [editorTab, setEditorTab] = useState<'text' | 'image' | 'design' | 'video'>('text');
 
     // Sidebar Mode (Create vs History vs Winners vs Assets vs Brands)
-    const [sidebarMode, setSidebarMode] = useState<'create' | 'history' | 'winners' | 'assets' | 'brands'>('create');
+    const [sidebarMode, setSidebarMode] = useState<'create' | 'history' | 'winners' | 'brands'>('create');
     const [history, setHistory] = useState<AdProject[]>([]);
 
     // Hover preview state
@@ -164,11 +165,12 @@ const App: React.FC = () => {
     const handleEnhancePrompt = async () => {
         if (!prompt.trim()) return;
         setIsEnhancingPrompt(true);
+        setError(null);
         try {
             const improved = await enhancePrompt(prompt);
             setPrompt(improved);
-        } catch (err) {
-            handleAIError(err);
+        } catch (err: any) {
+            setError(`Error al optimizar prompt: ${err.message || 'Inténtalo de nuevo.'}`);
         } finally {
             setIsEnhancingPrompt(false);
         }
@@ -460,15 +462,16 @@ const App: React.FC = () => {
             if (!prev) return null;
             const newSlides = [...prev.slides];
             newSlides[index] = { ...newSlides[index], ...updates };
-            const updatedProject = { ...prev, slides: newSlides };
-
-            // Auto-save changes to history (debounce could be added in prod)
-            const newHistory = saveToHistory(updatedProject);
-            setHistory(newHistory);
-
-            return updatedProject;
+            return { ...prev, slides: newSlides };
         });
     };
+
+    // Persist project to history whenever it changes (outside the setProject updater)
+    useEffect(() => {
+        if (!project) return;
+        const newHistory = saveToHistory(project);
+        setHistory(newHistory);
+    }, [project]);
 
     const loadProject = (p: AdProject) => {
         setProject(p);
@@ -584,6 +587,15 @@ const App: React.FC = () => {
     return (
         <div className="min-h-screen flex flex-col md:flex-row bg-deep-bg text-bone-white selection:bg-accent-primary/30 font-modern">
 
+            {/* Winner Toast */}
+            {winnerToast && (
+                <div className="fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-4 bg-amber-500 text-black rounded-2xl shadow-2xl shadow-amber-500/30 animate-in slide-in-from-top-4 duration-300">
+                    <Crown className="w-5 h-5 fill-black" />
+                    <span className="font-black text-sm uppercase tracking-wider">¡Winner guardado!</span>
+                    <button onClick={() => { setWinnerToast(false); setSidebarMode('winners'); }} className="ml-2 text-xs font-bold underline hover:no-underline opacity-80">Ver Winners →</button>
+                </div>
+            )}
+
             {/* Sidebar Pomelli Style */}
             <aside className="w-[80px] md:w-[260px] border-r border-white/5 py-8 md:px-6 flex flex-col gap-8 bg-deep-surface/40 h-screen sticky top-0 z-50 transition-all">
                 <div className="flex items-center justify-center md:justify-start gap-4 mb-2">
@@ -605,10 +617,6 @@ const App: React.FC = () => {
                     <button onClick={() => { setSidebarMode('create'); setProject(null); }} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'create' ? 'bg-accent-primary/20 text-accent-primary shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
                         <Sparkles className="w-5 h-5 shrink-0" />
                         <span className="text-xs font-bold uppercase tracking-widest hidden md:block">Campaigns</span>
-                    </button>
-                    <button onClick={() => setSidebarMode('assets')} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'assets' ? 'bg-white/10 text-bone-white shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
-                        <Layers className="w-5 h-5 shrink-0" />
-                        <span className="text-xs font-bold uppercase tracking-widest hidden md:block">Photoshoot</span>
                     </button>
                     <button onClick={() => setSidebarMode('history')} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'history' ? 'bg-white/10 text-bone-white shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
                         <History className="w-5 h-5 shrink-0" />
@@ -738,71 +746,69 @@ const App: React.FC = () => {
                                             className="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm focus:ring-1 focus:ring-accent-primary/50 outline-none transition-all placeholder:text-neutral-700 text-bone-white resize-none h-20"
                                         />
                                     </div>
-                                </div>
-                            </div>
-                        ) : sidebarMode === 'assets' ? (
-                            <div className="w-full max-w-4xl bg-[#1A1A1A] border border-white/5 p-8 rounded-[24px] shadow-2xl space-y-8">
-                                <h2 className="text-2xl font-black uppercase text-bone-white tracking-widest flex items-center gap-3"><Layers className="w-6 h-6 text-accent-primary" /> Photoshoot & Assets</h2>
-                                <p className="text-neutral-400 text-sm">Sube referencias visuales para la IA (Múltiples permitidas).</p>
 
-                                <div className="space-y-6">
-                                    {/* Brand Aesthetics / Design References Grid */}
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-center">
-                                            <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Referencia de Estilo Visual</label>
-                                            <span className="text-[10px] bg-accent-secondary/10 text-accent-secondary px-2 py-1 rounded-md">{designReferences.length} Imágenes</span>
-                                        </div>
-                                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
-                                            {/* Upload Button */}
-                                            <div onClick={() => designInputRef.current?.click()} className="aspect-square bg-deep-surface hover:bg-[#2A2A2A] border border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group">
-                                                <Upload className="w-6 h-6 text-accent-secondary mb-2 group-hover:scale-110 transition-transform" />
-                                                <span className="text-[10px] font-bold text-accent-secondary text-center px-1">Subir Estilos</span>
+                                    {/* PHOTOSHOOT & REFERENCES (merged into Business DNA) */}
+                                    <div className="space-y-6 pt-6 border-t border-white/5">
+                                        <div className="flex items-center gap-3">
+                                            <Layers className="w-5 h-5 text-accent-secondary" />
+                                            <div>
+                                                <h3 className="text-sm font-black uppercase tracking-widest text-bone-white">Referencias Visuales</h3>
+                                                <p className="text-[10px] text-neutral-500 mt-0.5">Sube imágenes para que la IA aprenda tu estilo</p>
                                             </div>
-                                            {/* Images */}
-                                            {designReferences.map((img, idx) => (
-                                                <div key={idx} className="aspect-square rounded-xl overflow-hidden relative group border border-white/10">
-                                                    <img src={img} className="w-full h-full object-cover" alt="Estilo" />
-                                                    <button onClick={(e) => { e.stopPropagation(); setDesignReferences(prev => prev.filter((_, i) => i !== idx)); }} className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-red-500 rounded-md text-white opacity-0 group-hover:opacity-100 transition-all"><X className="w-3 h-3" /></button>
+                                        </div>
+
+                                        {/* Design References */}
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Estilo Visual / Moodboard</label>
+                                                <span className="text-[10px] bg-accent-secondary/10 text-accent-secondary px-2 py-1 rounded-md">{designReferences.length} imgs</span>
+                                            </div>
+                                            <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+                                                <div onClick={() => designInputRef.current?.click()} className="aspect-square bg-deep-surface hover:bg-[#2A2A2A] border border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group">
+                                                    <Upload className="w-5 h-5 text-accent-secondary mb-1 group-hover:scale-110 transition-transform" />
+                                                    <span className="text-[9px] font-bold text-accent-secondary text-center px-1">Subir</span>
                                                 </div>
-                                            ))}
-                                        </div>
-                                        <input type="file" ref={designInputRef} className="hidden" accept="image/*" multiple onChange={handleDesignRefUpload} />
-                                    </div>
-
-                                    {/* Character References Grid */}
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-center">
-                                            <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Referencia de Personaje</label>
-                                            <span className="text-[10px] bg-accent-primary/10 text-accent-primary px-2 py-1 rounded-md">{refImages.length} Imágenes</span>
-                                        </div>
-                                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
-                                            {/* Upload Button */}
-                                            <div onClick={() => fileInputRef.current?.click()} className="aspect-square bg-deep-surface hover:bg-[#2A2A2A] border border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group">
-                                                <Upload className="w-6 h-6 text-accent-primary mb-2 group-hover:scale-110 transition-transform" />
-                                                <span className="text-[10px] font-bold text-accent-primary text-center px-1">Subir Caras</span>
+                                                {designReferences.map((img, idx) => (
+                                                    <div key={idx} className="aspect-square rounded-xl overflow-hidden relative group border border-white/10">
+                                                        <img src={img} className="w-full h-full object-cover" alt="Estilo" />
+                                                        <button onClick={(e) => { e.stopPropagation(); setDesignReferences(prev => prev.filter((_, i) => i !== idx)); }} className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-red-500 rounded-md text-white opacity-0 group-hover:opacity-100 transition-all"><X className="w-3 h-3" /></button>
+                                                    </div>
+                                                ))}
                                             </div>
-                                            {/* Images */}
-                                            {refImages.map((img, idx) => (
-                                                <div key={idx} className="aspect-square rounded-xl overflow-hidden relative group border border-white/10">
-                                                    <img src={img} className="w-full h-full object-cover" alt="Caras" />
-                                                    <button onClick={(e) => { e.stopPropagation(); setRefImages(prev => prev.filter((_, i) => i !== idx)); }} className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-red-500 rounded-md text-white opacity-0 group-hover:opacity-100 transition-all"><X className="w-3 h-3" /></button>
+                                            <input type="file" ref={designInputRef} className="hidden" accept="image/*" multiple onChange={handleDesignRefUpload} />
+                                        </div>
+
+                                        {/* Character References */}
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Personaje / Rostro Consistente</label>
+                                                <span className="text-[10px] bg-accent-primary/10 text-accent-primary px-2 py-1 rounded-md">{refImages.length} imgs</span>
+                                            </div>
+                                            <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
+                                                <div onClick={() => fileInputRef.current?.click()} className="aspect-square bg-deep-surface hover:bg-[#2A2A2A] border border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group">
+                                                    <Upload className="w-5 h-5 text-accent-primary mb-1 group-hover:scale-110 transition-transform" />
+                                                    <span className="text-[9px] font-bold text-accent-primary text-center px-1">Subir</span>
                                                 </div>
-                                            ))}
+                                                {refImages.map((img, idx) => (
+                                                    <div key={idx} className="aspect-square rounded-xl overflow-hidden relative group border border-white/10">
+                                                        <img src={img} className="w-full h-full object-cover" alt="Persona" />
+                                                        <button onClick={(e) => { e.stopPropagation(); setRefImages(prev => prev.filter((_, i) => i !== idx)); }} className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-red-500 rounded-md text-white opacity-0 group-hover:opacity-100 transition-all"><X className="w-3 h-3" /></button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleRefImageUpload} />
                                         </div>
-                                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleRefImageUpload} />
-                                    </div>
 
-                                    {/* Knowledge Base */}
-                                    <div className="space-y-3 pt-4 border-t border-white/5">
-                                        <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Base de Conocimiento Documental</label>
-                                        <div onClick={() => docInputRef.current?.click()} className={`w-full py-4 px-5 border border-dashed rounded-xl flex items-center gap-4 cursor-pointer transition-all ${knowledgeBase ? 'bg-green-500/10 border-green-500/50' : 'bg-deep-surface border-white/10'}`}>
-                                            <div className={`p-3 rounded-lg ${knowledgeBase ? 'bg-green-500/20' : 'bg-black/50'}`}>
-                                                {knowledgeBase ? <Check className="w-5 h-5 text-green-400" /> : <FileText className="w-5 h-5 text-neutral-400" />}
+                                        {/* Knowledge Base */}
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Base de Conocimiento (PDF/TXT)</label>
+                                            <div onClick={() => docInputRef.current?.click()} className={`w-full py-3 px-4 border border-dashed rounded-xl flex items-center gap-3 cursor-pointer transition-all ${knowledgeBase ? 'bg-green-500/10 border-green-500/50' : 'bg-deep-surface border-white/10 hover:border-white/20'}`}>
+                                                <div className={`p-2 rounded-lg ${knowledgeBase ? 'bg-green-500/20' : 'bg-black/50'}`}>
+                                                    {knowledgeBase ? <Check className="w-4 h-4 text-green-400" /> : <FileText className="w-4 h-4 text-neutral-400" />}
+                                                </div>
+                                                <p className={`text-xs font-bold truncate ${knowledgeBase ? 'text-green-300' : 'text-neutral-400'}`}>{kbFileName || "Subir Documento"}</p>
+                                                <input type="file" ref={docInputRef} className="hidden" accept=".txt,.md,.json,.csv,.pdf,.doc,.docx" onChange={handleKnowledgeBaseUpload} />
                                             </div>
-                                            <div className="flex-1 overflow-hidden">
-                                                <p className={`text-sm font-bold truncate ${knowledgeBase ? 'text-green-300' : 'text-neutral-300'}`}>{kbFileName || "Subir Documento (PDF/TXT)"}</p>
-                                            </div>
-                                            <input type="file" ref={docInputRef} className="hidden" accept=".txt,.md,.json,.csv,.pdf,.doc,.docx" onChange={handleKnowledgeBaseUpload} />
                                         </div>
                                     </div>
                                 </div>
@@ -932,8 +938,26 @@ const App: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {/* Brand DNA status bar */}
+                                <div className="flex flex-wrap items-center gap-3 mt-4 w-full max-w-[800px]">
+                                    {brandContext.name || brandContext.niche ? (
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-1.5 rounded-full">
+                                            <Check className="w-3 h-3" /> Business DNA activo: {brandContext.name || brandContext.niche}
+                                        </div>
+                                    ) : (
+                                        <button onClick={() => setSidebarMode('brands')} className="flex items-center gap-2 text-[10px] font-bold text-neutral-500 hover:text-accent-primary border border-white/5 hover:border-accent-primary/30 px-3 py-1.5 rounded-full transition-all">
+                                            <Settings className="w-3 h-3" /> Configura tu Business DNA para mejores resultados →
+                                        </button>
+                                    )}
+                                    {(designReferences.length > 0 || refImages.length > 0) && (
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-accent-secondary bg-accent-secondary/10 border border-accent-secondary/20 px-3 py-1.5 rounded-full">
+                                            <Layers className="w-3 h-3" /> {designReferences.length + refImages.length} referencia(s) activa(s)
+                                        </div>
+                                    )}
+                                </div>
+
                                 {error && (
-                                    <div className="mt-8 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-200 text-sm animate-in zoom-in w-full max-w-2xl">
+                                    <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-200 text-sm animate-in zoom-in w-full max-w-2xl">
                                         <AlertCircle className="w-5 h-5 inline-block mr-2" />
                                         {error}
                                     </div>
@@ -985,7 +1009,14 @@ const App: React.FC = () => {
                             </div>
                             <div className="flex flex-wrap gap-3">
                                 <button
-                                    onClick={() => updateSlide(activeSlideIdx, { isWinner: !project.slides[activeSlideIdx].isWinner })}
+                                    onClick={() => {
+                                        const isNowWinner = !project.slides[activeSlideIdx].isWinner;
+                                        updateSlide(activeSlideIdx, { isWinner: isNowWinner });
+                                        if (isNowWinner) {
+                                            setWinnerToast(true);
+                                            setTimeout(() => setWinnerToast(false), 3500);
+                                        }
+                                    }}
                                     className={`p-4 rounded-xl transition-all border ${project.slides[activeSlideIdx].isWinner ? 'bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.3)] border-amber-500 text-black' : 'bg-neutral-900 border-white/10 text-neutral-500 hover:text-white'}`}
                                     title="Marcar como Winner"
                                 >
