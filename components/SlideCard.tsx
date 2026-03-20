@@ -1,6 +1,6 @@
 
 import React, { useRef } from 'react';
-import { Slide, VisualStyle, AspectRatio } from '../types';
+import { Slide, AspectRatio } from '../types';
 import { ImageOff } from 'lucide-react';
 
 interface SlideCardProps {

@@ -1,7 +1,7 @@
 
 export type GenerationMode = 'single-image' | 'carousel' | 'angles-batch' | 'manual-carousel';
 export type ContentIntent = 'paid-ads' | 'organic-value' | 'viral-hook';
-export type VisualStyle = 'auto' | 'brutalism' | 'clean' | 'organic' | 'luxury' | 'meme' | '3d-clay' | 'cinematic-thriller' | 'tech-agency' | 'satirical-split' | 'novela-grafica';
+export type VisualStyle = 'auto' | 'editorial' | 'bold' | 'minimal' | 'cinematic';
 export type AspectRatio = '1:1' | '4:3' | '16:9' | '9:16' | '3:4';
 export type GenerationStatus = 'idle' | 'generating-copy' | 'generating-visuals' | 'done' | 'error';
 

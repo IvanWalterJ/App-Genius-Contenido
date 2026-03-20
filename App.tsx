@@ -7,7 +7,7 @@ import { supabase, useCredit } from './services/supabase';
 import { useAuth } from './components/AuthContext';
 import { Login } from './components/Login';
 import SlideCard from './components/SlideCard';
-import { COLOR_THEMES, STYLE_CONFIGS, FONT_OPTIONS, DISRUPTIVE_STYLES } from './constants';
+import { STYLE_CONFIGS, FONT_OPTIONS } from './constants';
 
 import { toPng } from 'html-to-image';
 import {
@@ -112,9 +112,6 @@ const App: React.FC = () => {
     // Sidebar Mode (Create vs History vs Winners vs Assets vs Brands)
     const [sidebarMode, setSidebarMode] = useState<'create' | 'carousels' | 'history' | 'winners' | 'brands'>('create');
     const [history, setHistory] = useState<AdProject[]>([]);
-
-    // Hover preview state
-    const [hoveredStyle, setHoveredStyle] = useState<VisualStyle | null>(null);
 
     // Knowledge Base & Prompt Enhancer State
     const [knowledgeBase, setKnowledgeBase] = useState<string | null>(null);
@@ -348,25 +345,18 @@ const App: React.FC = () => {
                 brandContext,
                 isAiDesign: useAiDesign,
                 primaryColor: (useAiDesign && copyResult.designTheme?.primaryColor) || '#050505',
-                accentColor: (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent,
-                accentGradient: `linear-gradient(to right, ${(useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent}, ${(useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent}dd)`,
+                accentColor: (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || '#f97316',
+                accentGradient: `linear-gradient(to right, ${(useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || '#f97316'}, ${(useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || '#f97316'}dd)`,
                 slides: rawSlides.map((s: any, idx: number) => {
                     let defaultY = 50;
                     if (s.layout === 'bottom-heavy') defaultY = 75;
                     if (s.layout === 'top-heavy') defaultY = 25;
 
-                    // Assign disruptive style for Volume mode (angles-batch)
-                    let disruptiveStylePrefix: string | undefined = undefined;
-                    if (genMode === 'angles-batch') {
-                        // Use sequential or random selection from DISRUPTIVE_STYLES
-                        disruptiveStylePrefix = DISRUPTIVE_STYLES[idx % DISRUPTIVE_STYLES.length];
-                    }
-
                     return {
                         ...s,
                         id: `slide-${idx}`,
-                        overlayOpacity: STYLE_CONFIGS[style]?.defaultOverlay ?? 0.4,
-                        customStyle: disruptiveStylePrefix,
+                        overlayOpacity: 0.4,
+                        customStyle: undefined,
 
                         headlineSize: s.headlineSize || (genMode === 'single-image' ? 64 : 48),
                         headlineColor: '#ffffff',
@@ -376,7 +366,7 @@ const App: React.FC = () => {
                         headlineGradient: null,
                         headlineBgColor: null,
 
-                        highlightColor: (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent,
+                        highlightColor: (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || '#f97316',
                         highlightFont: (useAiDesign && copyResult.designTheme?.headlineFont) || 'font-sans',
                         highlightFontWeight: '800',
 
@@ -387,7 +377,7 @@ const App: React.FC = () => {
                         subHeadlineFontWeight: '400',
 
                         ctaColor: (useAiDesign && copyResult.designTheme?.ctaColor) || '#000000',
-                        ctaBgColor: (useAiDesign && copyResult.designTheme?.ctaBgColor) || (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || COLOR_THEMES[0].accent,
+                        ctaBgColor: (useAiDesign && copyResult.designTheme?.ctaBgColor) || (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor || '#f97316',
                         ctaBgGradient: null,
                         ctaRoundness: 8,
                         ctaShadow: true,
@@ -409,8 +399,6 @@ const App: React.FC = () => {
             setStatus('generating-visuals');
 
             const updatedSlides = [...newProject.slides];
-            const useReferenceStyle = designReferences.length > 0 || refImages.length > 0;
-
             for (let i = 0; i < updatedSlides.length; i++) {
                 if (i > 0) await new Promise(r => setTimeout(r, 200));
 
@@ -418,21 +406,19 @@ const App: React.FC = () => {
                 let imageError: string | undefined = undefined;
 
                 try {
-                    const slideAccent = (useAiDesign && copyResult.designTheme?.accentColor) || userAccentColor;
                     const isCarouselMode = genMode === 'carousel' || genMode === 'manual-carousel';
                     imageUrl = await generateSlideImage(
-                        updatedSlides[i].visualPrompt, 
-                        style, 
-                        useReferenceStyle, 
+                        updatedSlides[i].visualPrompt,
+                        style,
                         aspectRatio,
-                        slideAccent,
-                        genMode === 'angles-batch',
-                        refImages.length > 0 ? refImages : undefined,
-                        updatedSlides[i].customStyle,
-                        designReferences.length > 0 ? designReferences : undefined,
-                        isCarouselMode ? undefined : updatedSlides[i].headline,
-                        isCarouselMode ? undefined : updatedSlides[i].subHeadline,
-                        isCarouselMode ? undefined : updatedSlides[i].headlineFont
+                        {
+                            characterReference: refImages.length > 0 ? refImages : undefined,
+                            styleReference: designReferences.length > 0 ? designReferences : undefined,
+                            headline: isCarouselMode ? undefined : updatedSlides[i].headline,
+                            subHeadline: isCarouselMode ? undefined : updatedSlides[i].subHeadline,
+                            headlineFont: isCarouselMode ? undefined : updatedSlides[i].headlineFont,
+                            brandColors: brandContext.colorPalette || undefined,
+                        }
                     );
                 } catch (imgErr: any) {
                     imageError = "Error de IA";
@@ -488,18 +474,17 @@ const App: React.FC = () => {
         try {
             const isCarouselMode = project.mode === 'carousel' || project.mode === 'manual-carousel';
             const newUrl = await generateSlideImage(
-                currentSlide.visualPrompt, 
-                project.visualStyle, 
-                refImages.length > 0, 
+                currentSlide.visualPrompt,
+                project.visualStyle,
                 project.aspectRatio,
-                userAccentColor,
-                project.mode === 'angles-batch',
-                refImages.length > 0 ? refImages : undefined,
-                currentSlide.customStyle,
-                designReferences.length > 0 ? designReferences : undefined,
-                isCarouselMode ? undefined : currentSlide.headline,
-                isCarouselMode ? undefined : currentSlide.subHeadline,
-                isCarouselMode ? undefined : currentSlide.headlineFont
+                {
+                    characterReference: refImages.length > 0 ? refImages : undefined,
+                    styleReference: designReferences.length > 0 ? designReferences : undefined,
+                    headline: isCarouselMode ? undefined : currentSlide.headline,
+                    subHeadline: isCarouselMode ? undefined : currentSlide.subHeadline,
+                    headlineFont: isCarouselMode ? undefined : currentSlide.headlineFont,
+                    brandColors: project.brandContext?.colorPalette || undefined,
+                }
             );
             updateSlide(slideIdx, { backgroundImageUrl: newUrl, imageError: undefined });
         } catch (err) {
@@ -589,13 +574,21 @@ const App: React.FC = () => {
         setHistory(newHistory);
     }, [project, user]);
 
+    // Map legacy style names from old projects to new simplified styles
+    const LEGACY_STYLE_MAP: Record<string, VisualStyle> = {
+        'cinematic-thriller': 'cinematic', 'tech-agency': 'minimal', 'satirical-split': 'bold',
+        'brutalism': 'bold', 'clean': 'minimal', 'organic': 'editorial',
+        'luxury': 'cinematic', 'meme': 'bold', '3d-clay': 'minimal', 'novela-grafica': 'cinematic',
+    };
+
     const loadProject = (p: AdProject) => {
-        setProject(p);
+        const migratedStyle = (STYLE_CONFIGS[p.visualStyle] ? p.visualStyle : LEGACY_STYLE_MAP[p.visualStyle] || 'auto') as VisualStyle;
+        setProject({ ...p, visualStyle: migratedStyle });
         setAspectRatio(p.aspectRatio);
         setPrompt(p.goal);
-        setStyle(p.visualStyle);
+        setStyle(migratedStyle);
         setActiveSlideIdx(0);
-        setStatus('done'); // Assume done if loading from history
+        setStatus('done');
         if (window.innerWidth < 768) {
             // Close sidebar on mobile if we had that logic, for now just load
         }

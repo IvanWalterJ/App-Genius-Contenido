@@ -1,9 +1,10 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Slide, AdProject, ContentIntent, VisualStyle, AspectRatio, BrandContext } from "../types";
-import { STYLE_CONFIGS } from "../constants";
+import { ContentIntent, VisualStyle, BrandContext } from "../types";
+import { STYLE_CONFIGS, FONT_DESCRIPTIONS } from "../constants";
 
-// Helper to wrap promises with a timeout
+// ─── Utilities ───────────────────────────────────────────────
+
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> => {
   return Promise.race([
     promise,
@@ -13,115 +14,14 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, errorMessage: st
   ]);
 };
 
-// Helper to clean Markdown JSON significantly more robustly
 const cleanJSON = (text: string) => {
   if (!text) return "{}";
   const firstBrace = text.indexOf('{');
   const lastBrace = text.lastIndexOf('}');
-
   if (firstBrace !== -1 && lastBrace !== -1) {
     return text.substring(firstBrace, lastBrace + 1);
   }
-
   return text.replace(/^```json\s*/, '').replace(/\s*```$/, '').trim();
-};
-
-// --- SAFE MODE FALLBACK ---
-const getSafeFallback = (prompt: string, style: string, brand: BrandContext, type: string, slideCount: number = 6): any => {
-  // NEVER use the raw prompt as copy. Only use brand context or generic marketing angles.
-  const brandName = brand.name || 'Tu Marca';
-  const niche = brand.niche || 'tu negocio';
-  const audience = brand.targetAudience || 'clientes';
-
-  const allSlides = [
-    {
-      headline: `¿Sigues haciendo lo *mismo* y esperando resultados diferentes?`,
-      subHeadline: `El 87% de ${audience} en ${niche} pierden tiempo y dinero por no tener un sistema probado. Tú puedes ser diferente.`,
-      visualPrompt: `High-end professional atmosphere, cinematic dramatic lighting, modern office environment, premium aesthetic, 4K photorealistic`,
-      layout: "centered",
-      angleLabel: "GANCHO"
-    },
-    {
-      headline: "El *problema* que nadie te cuenta",
-      subHeadline: `Mientras ${audience} siguen con métodos obsoletos en ${niche}, los que lideran ya cambiaron su estrategia.`,
-      visualPrompt: `Metaphorical image about frustration and challenges, person looking at complex data, professional cinematic lighting, dark moody tones`,
-      layout: "bottom-heavy",
-      angleLabel: "DOLOR"
-    },
-    {
-      headline: `*${brandName}*: El sistema que lo cambia todo`,
-      subHeadline: `Diseñamos una solución específica para ${niche} que elimina la complejidad y multiplica tus resultados.`,
-      visualPrompt: `Bright futuristic success imagery, clean minimalist design, person celebrating achievement, premium 4K quality`,
-      layout: "centered",
-      angleLabel: "SOLUCIÓN"
-    },
-    {
-      headline: "*3x* más resultados en la mitad de tiempo",
-      subHeadline: `${audience} como tú ya lograron transformar su rendimiento en ${niche} con nuestro método comprobado.`,
-      visualPrompt: `Professional achievement celebration, growth charts going up, warm golden hour lighting, inspiring atmosphere`,
-      layout: "top-heavy",
-      angleLabel: "PRUEBA"
-    },
-    {
-      headline: "Tu competencia ya *empezó*",
-      subHeadline: `Cada día que esperas, alguien más en ${niche} toma tu lugar. La ventana de oportunidad se cierra.`,
-      visualPrompt: `Dynamic competitive scene, person running ahead, dramatic cinematic lighting, urgency atmosphere`,
-      layout: "centered",
-      angleLabel: "URGENCIA"
-    },
-    {
-      headline: "Empieza *hoy*, ve resultados *mañana*",
-      subHeadline: `Sin compromisos. Sin letra chica. Solo resultados medibles para ${audience} en ${niche}.`,
-      cta: "QUIERO EMPEZAR",
-      visualPrompt: `Clean call-to-action scene, person confidently pressing button, modern tech environment, bright hopeful lighting`,
-      layout: "bottom-heavy",
-      angleLabel: "CIERRE"
-    },
-    {
-      headline: "¿Por qué *nosotros* y no otro?",
-      subHeadline: `Más de 1,000 ${audience} en ${niche} ya confían en ${brandName}. Resultados comprobados, sin excusas.`,
-      visualPrompt: `Trust and credibility imagery, team of professionals, clean modern studio, professional lighting`,
-      layout: "centered",
-      angleLabel: "AUTORIDAD"
-    },
-    {
-      headline: "Lo que *nadie* te está diciendo sobre ${niche}",
-      subHeadline: `Los líderes del sector lo saben y lo aplican cada día. ¿Estás listo para descubrirlo?`,
-      visualPrompt: `Mysterious reveal concept, dramatic spotlight, secrets being unveiled, cinematic dark lighting with golden accents`,
-      layout: "centered",
-      angleLabel: "CURIOSIDAD"
-    },
-    {
-      headline: "De *0 a líder* en su categoría",
-      subHeadline: `Un caso real: cómo ${audience} en ${niche} pasó de la frustración a facturar 5 cifras mensuales.`,
-      visualPrompt: `Success transformation before/after concept, warm celebratory golden hour lighting, professional environment`,
-      layout: "top-heavy",
-      angleLabel: "SOCIAL PROOF"
-    },
-    {
-      headline: "Últimas *plazas* disponibles",
-      subHeadline: `Cupo limitado. El precio cambia pronto. Actúa ahora o pierde tu ventaja en ${niche}.`,
-      cta: "RESERVAR MI LUGAR",
-      visualPrompt: `Urgency and scarcity concept, countdown timer, red and gold dramatic composition, high stakes atmosphere`,
-      layout: "bottom-heavy",
-      angleLabel: "URGENCIA"
-    }
-  ];
-
-  const targetCount = type === 'single-image' ? 1 : Math.min(slideCount, allSlides.length);
-  // If we need more slides than available templates, cycle through them
-  const slides = Array.from({ length: targetCount }, (_, i) => allSlides[i % allSlides.length]);
-
-  return {
-    title: `Campaña ${brandName} — ${niche}`,
-    designTheme: {
-      primaryColor: "#0a0a0a",
-      accentColor: "#facc15",
-      headlineFont: "font-brand",
-      subHeadlineFont: "font-modern"
-    },
-    slides
-  };
 };
 
 export const getApiKey = () => {
@@ -144,13 +44,83 @@ export const getApiKey = () => {
   return key;
 };
 
+// ─── Safe Fallback (when all models fail) ────────────────────
+
+const getSafeFallback = (prompt: string, style: string, brand: BrandContext, type: string, slideCount: number = 6): any => {
+  const brandName = brand.name || 'Tu Marca';
+  const niche = brand.niche || 'tu negocio';
+  const audience = brand.targetAudience || 'clientes';
+
+  const allSlides = [
+    {
+      headline: `¿Sigues haciendo lo *mismo* esperando resultados diferentes?`,
+      subHeadline: `El 87% de ${audience} en ${niche} pierden tiempo por no tener un sistema probado.`,
+      visualPrompt: `Professional cinematic scene, person looking frustrated at laptop in modern office, dramatic side lighting, dark moody tones, 4K photorealistic`,
+      layout: "centered",
+      angleLabel: "GANCHO"
+    },
+    {
+      headline: "El *problema* que nadie te cuenta",
+      subHeadline: `Mientras siguen con métodos obsoletos en ${niche}, los líderes ya cambiaron.`,
+      visualPrompt: `Close-up of hands gripping desk in frustration, shallow depth of field, warm dramatic lighting, editorial photography style`,
+      layout: "bottom-heavy",
+      angleLabel: "DOLOR"
+    },
+    {
+      headline: `*${brandName}* lo cambia todo`,
+      subHeadline: `Una solución diseñada para ${niche} que elimina la complejidad y multiplica resultados.`,
+      visualPrompt: `Bright modern workspace, person smiling confidently at screen showing growth metrics, clean minimalist environment, natural light`,
+      layout: "centered",
+      angleLabel: "SOLUCIÓN"
+    },
+    {
+      headline: "*3x* más resultados, la mitad de tiempo",
+      subHeadline: `${audience} como tú ya transformaron su rendimiento con nuestro método.`,
+      visualPrompt: `Celebration moment, professional achievement, growth chart going up on screen, golden hour warm lighting, inspiring atmosphere`,
+      layout: "top-heavy",
+      angleLabel: "PRUEBA"
+    },
+    {
+      headline: "Tu competencia ya *empezó*",
+      subHeadline: `Cada día que esperas, alguien más en ${niche} toma tu lugar.`,
+      visualPrompt: `Dynamic competitive scene, person walking forward with determination, urban modern setting, cinematic dramatic lighting`,
+      layout: "centered",
+      angleLabel: "URGENCIA"
+    },
+    {
+      headline: "Empieza *hoy*, ve resultados *mañana*",
+      subHeadline: `Sin compromisos. Solo resultados medibles para ${audience}.`,
+      cta: "QUIERO EMPEZAR",
+      visualPrompt: `Clean call-to-action scene, confident person reaching hand toward camera, bright hopeful lighting, modern tech environment`,
+      layout: "bottom-heavy",
+      angleLabel: "CTA"
+    }
+  ];
+
+  const targetCount = type === 'single-image' ? 1 : Math.min(slideCount, allSlides.length);
+  const slides = Array.from({ length: targetCount }, (_, i) => allSlides[i % allSlides.length]);
+
+  return {
+    title: `Campaña ${brandName} — ${niche}`,
+    designTheme: {
+      primaryColor: "#0a0a0a",
+      accentColor: "#f97316",
+      headlineFont: "font-brand",
+      subHeadlineFont: "font-modern"
+    },
+    slides
+  };
+};
+
+// ─── Enhance Prompt ──────────────────────────────────────────
+
 export const enhancePrompt = async (rawPrompt: string): Promise<string> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   const response = await withTimeout(
     ai.models.generateContent({
       model: "models/gemini-2.0-flash",
-      contents: [{ parts: [{ text: `Eres un experto en copywriting de respuesta directa y marketing de alto impacto. Optimiza el siguiente prompt de campaña publicitaria para que la IA genere mejores imágenes y textos de venta. REGLAS: (1) Mantén EXACTAMENTE el mismo objetivo de negocio. (2) Agrega contexto visual, emocional y de audiencia. (3) Sé específico con el nicho y el dolor del cliente. (4) El resultado DEBE estar en ESPAÑOL. (5) Devuelve SOLO el prompt optimizado, sin comentarios ni introducciones.\n\nPrompt original: "${rawPrompt}"` }] }],
+      contents: [{ parts: [{ text: `Optimiza este brief publicitario para que la IA genere mejores imágenes y textos de venta. Mantén el mismo objetivo de negocio, agrega contexto visual y emocional. Responde SOLO con el prompt optimizado en español.\n\nBrief original: "${rawPrompt}"` }] }],
     }),
     15000,
     "Enhance Prompt Timeout"
@@ -159,6 +129,8 @@ export const enhancePrompt = async (rawPrompt: string): Promise<string> => {
   if (!result) throw new Error("La IA no devolvió un prompt optimizado.");
   return result;
 };
+
+// ─── Generate Ad Copy ────────────────────────────────────────
 
 export const generateAdCopy = async (
   prompt: string,
@@ -174,84 +146,58 @@ export const generateAdCopy = async (
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
 
-  const isVolume = type === 'angles-batch';
   const targetSlides = type === 'single-image' ? 1 : (type === 'angles-batch' ? 6 : slideCount);
 
-  let sysInstruction = `Rol: Director Creativo y Copywriter de Respuesta Directa de Élite, especializado en marketing de impacto y psicología de ventas de alto CTR.
-  
-  ## ⚠️ REGLA #1 — PROHIBIDO COPIAR EL TEXTO DEL USUARIO LITERALMENTE
-  El texto del usuario es SOLO un BRIEF CREATIVO, una IDEA, una DIRECCIÓN. Tu trabajo como Director Creativo es:
-  1. INTERPRETAR la idea del usuario y ENTENDER qué producto/servicio quiere promocionar
-  2. CREAR TU PROPIO COPY PROFESIONAL desde cero, usando ángulos de venta, gatillos emocionales y técnicas de respuesta directa
-  3. NUNCA JAMÁS uses las palabras exactas del usuario como headline o subheadline. El usuario te da la idea, TÚ creas el copy de venta.
-  
-  Ejemplo: Si el usuario dice "Necesito un anuncio para mi app de copywriting con IA", TÚ debes crear un headline como "Escribe anuncios que venden en 30 segundos" o "La IA que convierte tus ideas en copys que facturan" — NO "Crea una app de copywriting con IA".
-  
-  ## BRIEF CREATIVO DEL USUARIO (INTERPRETA, NO COPIES):
-  El usuario quiere promocionar algo relacionado con: "${prompt}"
-  Usa esto como CONTEXTO para entender el producto/servicio/nicho. Luego INVENTA copy publicitario profesional que VENDA, atacando los dolores y deseos del público objetivo.
+  // ── System instruction: conciso y efectivo ──
+  let sysInstruction = `Eres un copywriter de respuesta directa experto en publicidad de alto impacto.
+Tu trabajo: interpretar el brief creativo del usuario y crear copy publicitario profesional en español que venda.
 
-  ## CONTEXTO DE MARCA (OBLIGATORIO - PERSONALIZA TODO A ESTO):
-  - Nombre de Marca: ${brandContext.name || '(sin nombre)'}
-  - Sector/Nicho: ${brandContext.niche || '(sin nicho)'}
-  - Público Objetivo: ${brandContext.targetAudience || '(audiencia general)'}
-  - Tono de Voz: ${brandContext.tone || 'Profesional y Persuasivo'}
-  ${brandContext.colorPalette ? `- Paleta de Colores de Marca: ${brandContext.colorPalette} — USA ESTOS COLORES en los visualPrompts de imagen cuando describes ambientes, elementos y atmósferas.` : ''}
-  ${brandContext.brandPersonality ? `- Personalidad de Marca / USP: ${brandContext.brandPersonality} — Refleja esta personalidad en el tono y mensajes.` : ''}
-  
-  ## REGLAS DE ORO DEL COPY (OBLIGATORIO: TODO EN ESPAÑOL):
-  1. TODO EL OUTPUT DEBE ESTAR EN ESPAÑOL. NUNCA EN INGLÉS.
-  2. Habla DIRECTAMENTE al ${brandContext.targetAudience || 'cliente'} usando SUS palabras, dolores y deseos reales.
-  3. El headline debe DETENER el scroll — usa gatillos mentales: curiosidad, dolor, promesa audaz, número específico.
-  4. El subheadline amplifica el headline con un beneficio concreto o prueba social.
-  5. NUNCA uses frases genéricas como "Mejora tu vida" o "El mejor servicio". Sé ESPECÍFICO al nicho: ${brandContext.niche || 'el sector'}.
-  6. El tono DEBE ser ${brandContext.tone || 'Profesional y Persuasivo'} en TODOS los slides.
-  7. La CTA debe crear urgencia o reducir fricción (ej: "Agenda tu llamada gratis", "Ver cómo funciona").
-  8. NUNCA repitas el prompt del usuario en los headlines. Crea copy ORIGINAL de venta.
-  ${brandContext.colorPalette ? `9. En los visualPrompts de imagen, incorpora la paleta de colores de marca: ${brandContext.colorPalette}` : ''}
-  
-  ${brandContext.tone ? `## TONO ESPECÍFICO: ${brandContext.tone} — que esto se SIENTA en cada palabra.` : ''}
-  - HeadlineSize sugeridos: 40-70 para Single, 35-50 para Carrusel.
-  - RECUERDA: El copy DEBE ser inventado por TI como profesional. El usuario NO te está dando el texto, te está dando la IDEA.
-  `;
+MARCA:
+- Nombre: ${brandContext.name || '(sin nombre)'}
+- Nicho: ${brandContext.niche || '(sin nicho)'}
+- Audiencia: ${brandContext.targetAudience || '(general)'}
+- Tono: ${brandContext.tone || 'Profesional y Persuasivo'}
+${brandContext.brandPersonality ? `- Personalidad: ${brandContext.brandPersonality}` : ''}
+${brandContext.colorPalette ? `- Paleta de colores: ${brandContext.colorPalette}` : ''}
 
+REGLAS:
+1. TODO en español. Headlines máximo 10 palabras. SubHeadlines máximo 25 palabras.
+2. El prompt del usuario es un BRIEF CREATIVO — NUNCA lo copies literalmente. Crea copy ORIGINAL de venta.
+3. Cada headline debe parar el scroll: curiosidad, dolor, promesas audaces o números específicos.
+4. Usa *asteriscos* alrededor de UNA palabra clave por headline para énfasis visual.
+5. CTAs que creen urgencia o reduzcan fricción (ej: "Agenda tu llamada gratis").
+6. Los visualPrompts deben estar en INGLÉS y describir escenas visuales detalladas para generación de imagen.
+${brandContext.colorPalette ? `7. Incorpora la paleta de colores de marca en los visualPrompts.` : ''}
+
+BRIEF CREATIVO DEL USUARIO: "${prompt}"
+`;
+
+  // ── Instrucciones por modo ──
+  if (type === 'single-image') {
+    sysInstruction += `\nGENERA EXACTAMENTE 1 slide publicitario. El array 'slides' debe tener SOLO 1 elemento.`;
+  } else if (type === 'angles-batch') {
+    sysInstruction += `\nGENERA EXACTAMENTE 6 variaciones con ángulos diferentes: Dolor, Deseo, Romper Objeción, Lógica, Urgencia, Creativo. Cada headline con un enfoque completamente distinto. Incluye angleLabel para cada uno.`;
+  } else {
+    sysInstruction += `\nGENERA EXACTAMENTE ${targetSlides} slides con narrativa continua: gancho → problema → solución → beneficio → prueba → CTA.
+COHERENCIA VISUAL: Todos los slides deben sentirse como parte de la MISMA campaña — mismo estilo visual, personajes consistentes, paleta de colores uniforme. Cada visualPrompt debe describir con detalle la escena (las imágenes de carrusel NO llevan texto superpuesto).`;
+  }
+
+  sysInstruction += `\n\nEl campo 'slides' del JSON debe tener EXACTAMENTE ${targetSlides} elemento(s).`;
+
+  // ── Referencias visuales ──
   if (styleReference) {
-    sysInstruction += `\nESTILO VISUAL Y TIPOGRÁFICO DE REFERENCIA: Se ha proporcionado una imagen de marca. Analízala y extrae:
-    1. Paleta de colores dominante y acentos.
-    2. Identificación de Tipografía: si es sans-serif moderna, serif elegante, manuscrita, etc.
-    3. Atmósfera: minimalista, vibrante, oscura, corporativa, etc.
-    APLICA este mismo ADN visual a toda la campaña. Es fundamental que el resultado final sea consistente con esta referencia de diseño.`;
+    sysInstruction += `\nREFERENCIA DE ESTILO: Se proporcionan imágenes de referencia visual. Analiza su paleta de colores, tipografía y atmósfera. Aplica ese mismo ADN visual en los visualPrompts de cada slide.`;
   }
 
   if (characterReference) {
-    sysInstruction += `\nPERSONAJE DE REFERENCIA: Se ha proporcionado una foto de referencia de una persona. IMPORTANTE:
-    - IDENTIDAD: Mantén la MISMA cara, rasgos faciales, color de piel, tipo de cabello y complexión física.
-    - VARIACIÓN OBLIGATORIA: En cada slide, pon al personaje en DIFERENTE pose, expresión, ángulo de cámara y situación.
-    - Ejemplos: sonriendo en una, seria y profesional en otra, mirando su laptop, hablando con un cliente, señalando algo, de perfil, primer plano, plano medio, etc.
-    - NUNCA generes la misma pose ni el mismo ángulo de cara en dos slides. La foto de referencia es solo para capturar la IDENTIDAD, no para CLONAR la pose.
-    - En los visualPrompts de cada slide, describe ESPECÍFICAMENTE la pose y expresión que quieres para ese slide.`;
+    sysInstruction += `\nPERSONAJE: Se proporciona foto de referencia de una persona. Mantén su identidad facial en todos los slides pero VARÍA la pose, expresión, ángulo de cámara y situación en cada uno. Describe la pose específica en cada visualPrompt.`;
   }
 
-  const hasSlideMarkers = /slide \d+/i.test(prompt) || /\[slide \d+\]/i.test(prompt);
-
-  if (type === 'angles-batch') {
-    sysInstruction += `\nTarea: Generar EXACTAMENTE 6 variaciones visuales de ALTO IMPACTO (Ángulos: Dolor, Deseo, Romper Objeción, Lógica, Urgencia, Creativo). Cada una con un ángulo completamente diferente. Inspírate en: "${prompt}". Output JSON.`;
-  } else if (type === 'single-image') {
-    sysInstruction += `\nTarea: Generar EXACTAMENTE 1 sola imagen publicitaria. El array 'slides' debe tener SOLO 1 elemento. Output JSON.`;
-  } else {
-    sysInstruction += `\nTarea: Crear un carrusel de EXACTAMENTE ${targetSlides} slides con narrativa continua (hook→problema→solución→beneficio→prueba→CTA). Output JSON con ${targetSlides} items en el array 'slides'.
-    
-## COHERENCIA VISUAL OBLIGATORIA PARA CARRUSEL:
-Todos los slides deben sentirse como PARTE DE LA MISMA CAMPAÑA. Esto significa:
-1. MISMO ESTILO VISUAL: Usa el mismo tipo de iluminación, paleta de colores, y estética en TODAS las slides.
-2. PERSONAJES CONSISTENTES: Si hay una persona en el slide 1, esa MISMA persona (misma ropa, mismas características físicas) debe aparecer en las demás slides donde corresponda.
-3. AMBIENTE COHERENTE: Mantén el mismo tipo de escenario/fondo o una progresión lógica del mismo.
-4. CADA visualPrompt debe describir con EXTREMO detalle la escena visual, ya que las imágenes se generarán SIN texto superpuesto.
-5. Los visualPrompts deben indicar explícitamente elementos de consistencia: "mismo personaje del slide anterior", "continuando la misma escena", etc.`;
+  if (knowledgeBase) {
+    sysInstruction += `\n\nCONTEXTO ADICIONAL DE LA MARCA:\n${knowledgeBase}`;
   }
 
-  sysInstruction += `\n\nIMPORTANTE: El campo 'slides' del JSON debe tener EXACTAMENTE ${targetSlides} elemento(s). Ni más, ni menos.`;
-
+  // ── Content parts: images first, then text ──
   const contentParts: any[] = [];
   if (styleReference) {
     const refs = Array.isArray(styleReference) ? styleReference : [styleReference];
@@ -269,6 +215,7 @@ Todos los slides deben sentirse como PARTE DE LA MISMA CAMPAÑA. Esto significa:
   }
   contentParts.push({ text: sysInstruction });
 
+  // ── JSON schema ──
   const schema = {
     type: Type.OBJECT,
     properties: {
@@ -305,11 +252,10 @@ Todos los slides deben sentirse como PARTE DE LA MISMA CAMPAÑA. Esto significa:
     required: ['title', 'slides', 'designTheme']
   };
 
+  // ── Model cascade (2 models) ──
   const models = [
-    "models/gemini-2.0-flash",
     "models/gemini-2.5-flash-preview-04-17",
-    "models/gemini-1.5-flash",
-    "models/gemini-2.0-flash-lite"
+    "models/gemini-2.0-flash",
   ];
 
   for (const model of models) {
@@ -325,21 +271,18 @@ Todos los slides deben sentirse como PARTE DE LA MISMA CAMPAÑA. Esto significa:
         `Copy Generation Timeout: ${model}`
       );
       const parsed = JSON.parse(cleanJSON(response.text || '{}'));
-      // Validate: has real slides, not generic, and not a literal copy of the prompt
+
       if (parsed?.slides?.length > 0 && parsed.slides[0]?.headline) {
         const h = parsed.slides[0].headline.toLowerCase().replace(/[*_]/g, '');
         const promptWords = prompt.toLowerCase().trim();
-        const isGeneric = h.includes('tu sector') || h.includes('tu negocio');
-        // Check if headline is literally just the prompt or starts with it
         const isLiteral = promptWords.length > 10 && (
-          h.includes(promptWords) || 
-          promptWords.includes(h.replace(/[^a-záéíóúñü\s]/g, '').trim()) ||
+          h.includes(promptWords) ||
           h.startsWith(promptWords.slice(0, 20))
         );
-        if (!isGeneric && !isLiteral) {
+        if (!isLiteral) {
           return parsed;
         }
-        console.warn(`${model} returned generic or literal copy, trying next model... Headline was: "${parsed.slides[0].headline}"`);
+        console.warn(`${model} returned literal copy, trying next model...`);
       } else {
         console.warn(`${model} returned empty/no slides, trying next model...`);
       }
@@ -351,66 +294,72 @@ Todos los slides deben sentirse como PARTE DE LA MISMA CAMPAÑA. Esto significa:
   return getSafeFallback(prompt, style, brandContext, type, slideCount);
 };
 
+// ─── Generate Slide Image ────────────────────────────────────
+
 export const generateSlideImage = async (
-  prompt: string,
+  visualPrompt: string,
   style: VisualStyle,
-  useReference: boolean,
   aspectRatio: string = "3:4",
-  accentColor?: string,
-  isBatch: boolean = false,
-  characterReference?: string | string[],
-  customStyle?: string,
-  styleReference?: string | string[],
-  headline?: string,
-  subHeadline?: string,
-  headlineFont?: string
+  options: {
+    characterReference?: string | string[];
+    styleReference?: string | string[];
+    headline?: string;
+    subHeadline?: string;
+    headlineFont?: string;
+    brandColors?: string;
+  } = {}
 ): Promise<string> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
 
-  let stylePrefix = customStyle || STYLE_CONFIGS[style]?.promptPrefix || "";
+  const { characterReference, styleReference, headline, subHeadline, headlineFont, brandColors } = options;
 
-  let fullPrompt = `${stylePrefix} ${prompt}. Aspect ratio strictly ${aspectRatio}. Optimized for ${aspectRatio} viewport. Professional photography, high end production.`;
+  // ── Build prompt by sections ──
+  const sections: string[] = [];
 
-  // TEXT BAKING: If headline is provided, bake text into the image (for single-image and volume modes)
-  // Strip markdown formatting (*bold*, _italic_) before sending to image generation
+  // Section 1: Style direction
+  if (styleReference) {
+    sections.push("Match the visual style, color palette, lighting and mood of the provided reference images.");
+  } else {
+    const hint = STYLE_CONFIGS[style]?.hint || 'professional advertising photography';
+    sections.push(`Visual style: ${hint}.`);
+  }
+
+  // Section 2: Core visual scene
+  sections.push(visualPrompt);
+
+  // Section 3: Text baking OR no-text
   const cleanHeadline = headline?.replace(/[*_]/g, '').trim();
   const cleanSubHeadline = subHeadline?.replace(/[*_]/g, '').trim();
-  
+
   if (cleanHeadline && cleanHeadline.length > 0) {
-    fullPrompt += `\n\nTEXT ON IMAGE (MANDATORY):
-You MUST render the following text DIRECTLY ON the image as part of the design. The text must be:
-- PERFECTLY LEGIBLE, with zero spelling errors
-- Styled as premium advertising typography
-- Font style: ${headlineFont || 'bold sans-serif, modern and clean'}
-- Use high contrast against the background for readability
-- Render ALL text in ONE SINGLE AREA of the image (either top or bottom). DO NOT repeat or duplicate the text in multiple positions.
-- HEADLINE (large, bold, dominant): "${cleanHeadline}"`;
+    const fontDesc = FONT_DESCRIPTIONS[headlineFont || 'font-sans'] || 'bold sans-serif';
+    let textSection = `TEXT ON IMAGE:\nMain headline (large, bold, dominant): "${cleanHeadline}"`;
     if (cleanSubHeadline && cleanSubHeadline.length > 0) {
-      fullPrompt += `\n- SUB-HEADLINE (smaller, directly below the headline, same area): "${cleanSubHeadline}"`;
+      textSection += `\nSubtitle (smaller, below headline): "${cleanSubHeadline}"`;
     }
-    fullPrompt += `\nThe text IS the centerpiece of this ad visual. Render it EXACTLY ONCE. It must look like a professional advertising poster with integrated typography. NEVER duplicate or repeat any text.`;
+    textSection += `\nTypography: ${fontDesc}, premium advertising poster, high contrast against background. Render text exactly once in one area.`;
+    sections.push(textSection);
   } else {
-    // CAROUSEL MODE: Explicitly prohibit any text
-    fullPrompt += `\n\nCRITICAL: Do NOT include ANY text, words, letters, numbers, watermarks, or typography in this image. This is a VISUAL-ONLY image. Generate ONLY the visual scene described above with ZERO text elements.`;
+    sections.push("This image must contain zero text, letters, words, or typography of any kind.");
   }
 
+  // Section 4: Character reference instruction
   if (characterReference) {
-    fullPrompt += ` CHARACTER IDENTITY REFERENCE: Use the reference photo ONLY to capture the person's IDENTITY (face shape, skin tone, hair type, facial features). However, you MUST generate the person in a COMPLETELY DIFFERENT pose, expression, camera angle, and body position than the reference photo. The person should look natural and dynamic in the scene described — NOT a static clone of the reference. Vary head tilt, gaze direction, facial expression, and body language.`;
+    sections.push("Maintain this person's facial identity from the reference photo. Use a completely different pose, expression and camera angle than the reference.");
   }
 
-  // Nano Banana models (Google native image generation) — ordered by quality
-  const imgModels = [
-    'models/gemini-3-pro-image-preview',       // Nano Banana Pro — highest quality
-    'models/gemini-3.1-flash-image-preview',   // Nano Banana 2 — fast, high volume
-    'models/gemini-2.5-flash-image',           // Nano Banana — speed & efficiency
-  ];
+  // Section 5: Brand colors
+  if (brandColors) {
+    sections.push(`Color palette: ${brandColors}.`);
+  }
 
-  const configObj: any = {
-    responseModalities: ['TEXT', 'IMAGE'],
-    aspectRatio: aspectRatio
-  };
+  // Section 6: Technical
+  sections.push(`Aspect ratio: ${aspectRatio}. Professional advertising quality, high-end production.`);
 
+  const fullPrompt = sections.join('\n\n');
+
+  // ── Content parts: reference images first, then prompt ──
   const contentParts: any[] = [];
 
   if (styleReference) {
@@ -419,11 +368,6 @@ You MUST render the following text DIRECTLY ON the image as part of the design. 
       const base64Data = ref?.split(',')[1];
       if (base64Data) contentParts.push({ inlineData: { mimeType: "image/png", data: base64Data } });
     });
-    fullPrompt += ` \nSTYLE REFERENCE INSTRUCTION: Replicate the EXACT visual DNA of the provided reference image. This includes:
-        1. COLOR PALETTE: Use the same dominant colors and accent glows (e.g., magenta/purple neon).
-        2. TYPOGRAPHY & GRAPHICS: Mimic the font style, weight, and any graphical effects (glitch, pixelation, overlays).
-        3. LIGHTING & ATMOSPHERE: Match the high-contrast lighting, dramatic shadows, and overall 'Vibe'.
-        Apply this BRAND STYLE to the subject: ${prompt}. The goal is consistency so they look part of the same campaign.`;
   }
 
   if (characterReference) {
@@ -436,8 +380,19 @@ You MUST render the following text DIRECTLY ON the image as part of the design. 
 
   contentParts.push({ text: fullPrompt });
 
+  // ── Model cascade: Nano Banana 2 first ──
+  const imgModels = [
+    'models/gemini-3.1-flash-image-preview',   // Nano Banana 2 — fast + best text
+    'models/gemini-3-pro-image-preview',       // Nano Banana Pro — highest quality
+    'models/gemini-2.5-flash-image',           // Nano Banana — speed fallback
+  ];
+
+  const configObj: any = {
+    responseModalities: ['TEXT', 'IMAGE'],
+    aspectRatio: aspectRatio
+  };
+
   for (const model of imgModels) {
-    // Each model gets 2 attempts: retry once on 503 (high demand / temporary)
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         if (attempt > 0) {
@@ -463,24 +418,26 @@ You MUST render the following text DIRECTLY ON the image as part of the design. 
             return `data:${mime};base64,${(part as any).inlineData.data}`;
           }
         }
-        break; // No image in response, skip to next model
+        break;
       } catch (err: any) {
         const is503 = err.message?.includes('503') || err.message?.includes('UNAVAILABLE') || String(err.status) === '503';
         if (is503 && attempt === 0) {
           console.warn(`${model} 503 — will retry in 3s`);
-          continue; // Retry this model
+          continue;
         }
         console.warn(`${model} image gen failed:`, err.message);
         if (err.message?.includes("API key not valid") || String(err.status) === "403" || err.message?.includes("401")) {
-          throw err; // Auth error — stop immediately
+          throw err;
         }
-        break; // Try next model
+        break;
       }
     }
   }
 
   throw new Error("ALL_IMAGE_MODELS_FAILED");
 };
+
+// ─── Regenerate Slide Copy ───────────────────────────────────
 
 export const regenerateSlideCopy = async (
   slideIndex: number,
@@ -493,34 +450,28 @@ export const regenerateSlideCopy = async (
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   const positionMap: Record<number, string> = {
-    0: "apertura/gancho (debe capturar atención inmediatamente)",
-    1: "problema/dolor (profundiza el dolor del cliente)",
-    2: "solución (presenta la propuesta de valor)",
-    3: "prueba/beneficio (demuestra resultados reales)",
-    4: "cierre/CTA (urgencia para que tome acción ahora)"
+    0: "apertura/gancho",
+    1: "problema/dolor",
+    2: "solución",
+    3: "prueba/beneficio",
+    4: "cierre/CTA"
   };
   const position = positionMap[slideIndex] || `slide ${slideIndex + 1} de ${totalSlides}`;
+
   const response = await withTimeout(
     ai.models.generateContent({
       model: "models/gemini-2.0-flash",
-      contents: [{ parts: [{ text: `Eres un copywriter de respuesta directa de élite. Reescribe el copy publicitario para este slide. TODO EL OUTPUT DEBE SER EN ESPAÑOL.
+      contents: [{ parts: [{ text: `Reescribe el copy publicitario para este slide. Todo en español.
 
-CONTEXTO:
-- Objetivo de la campaña: ${projectGoal}
-- Posición en el carrusel: ${position}
-- Headline actual: "${currentHeadline}"
-- Estilo visual: ${style}
-- Intención: ${intent}
+Campaña: ${projectGoal}
+Posición: ${position}
+Headline actual: "${currentHeadline}"
+Intención: ${intent}
 
-REGLAS:
-1. El nuevo headline debe ser MÁS IMPACTANTE que el actual
-2. Usa gatillos mentales: curiosidad, urgencia, dolor, promesa específica
-3. El subHeadline debe amplificar y complementar el headline
-4. La CTA debe crear acción inmediata (si aplica a este slide)
-5. TODO en ESPAÑOL, lenguaje directo y poderoso
-6. Máximo 10 palabras en el headline
+Crea un headline MÁS IMPACTANTE (max 10 palabras), un subHeadline que lo amplifica, y un CTA de acción.
+Usa *asteriscos* en UNA palabra clave del headline.
 
-Devuelve SOLO este JSON: {"headline": "...", "subHeadline": "...", "cta": "..."}` }] }],
+Devuelve SOLO JSON: {"headline": "...", "subHeadline": "...", "cta": "..."}` }] }],
       config: { responseMimeType: "application/json" }
     }),
     15000,
@@ -528,6 +479,8 @@ Devuelve SOLO este JSON: {"headline": "...", "subHeadline": "...", "cta": "..."}
   );
   return JSON.parse(cleanJSON(response.text || '{}'));
 };
+
+// ─── Magic Rewrite ───────────────────────────────────────────
 
 export const magicRewrite = async (text: string, tone: string): Promise<string> => {
   const apiKey = getApiKey();
@@ -547,15 +500,17 @@ export const magicRewrite = async (text: string, tone: string): Promise<string> 
   }
 };
 
+// ─── Edit Image ──────────────────────────────────────────────
+
 export const editImage = async (base64Image: string, prompt: string): Promise<string> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
   const base64Data = base64Image.split(',')[1] || base64Image;
 
   const editModels = [
-    'models/gemini-3-pro-image-preview',       // Nano Banana Pro — highest quality
-    'models/gemini-3.1-flash-image-preview',   // Nano Banana 2 — fast
-    'models/gemini-2.5-flash-image',           // Nano Banana — fallback
+    'models/gemini-3.1-flash-image-preview',
+    'models/gemini-3-pro-image-preview',
+    'models/gemini-2.5-flash-image',
   ];
 
   for (const model of editModels) {
@@ -592,6 +547,9 @@ export const editImage = async (base64Image: string, prompt: string): Promise<st
   }
   throw new Error("El modelo no devolvió una imagen editada. Intenta con una descripción diferente.");
 };
+
+// ─── Generate Visual Prompt for Manual Carousel ──────────────
+
 export const generateVisualPromptForSlide = async (
   headline: string,
   subHeadline: string,
@@ -603,40 +561,33 @@ export const generateVisualPromptForSlide = async (
 ): Promise<string> => {
   const apiKey = getApiKey();
   const ai = new GoogleGenAI({ apiKey });
-  const styleDesc = STYLE_CONFIGS[style]?.name || style;
-  const position = slideIndex === 0 ? 'apertura/gancho'
-    : slideIndex === totalSlides - 1 ? 'cierre/CTA'
-    : `slide ${slideIndex + 1} de ${totalSlides}`;
+  const styleHint = STYLE_CONFIGS[style]?.hint || 'professional advertising photography';
+  const position = slideIndex === 0 ? 'opening/hook'
+    : slideIndex === totalSlides - 1 ? 'closing/CTA'
+    : `slide ${slideIndex + 1} of ${totalSlides}`;
 
   const response = await withTimeout(
     ai.models.generateContent({
       model: "models/gemini-2.0-flash",
-      contents: [{ parts: [{ text: `Eres un director de arte experto en publicidad digital. Genera un prompt visual detallado en inglés para una imagen de alta calidad publicitaria.
+      contents: [{ parts: [{ text: `Generate a detailed visual prompt in English for an advertising image.
 
-SLIDE: ${position}
-HEADLINE: "${headline}"
-SUBHEADLINE: "${subHeadline}"
-MARCA: ${brandContext.name || 'marca'}
-NICHO: ${brandContext.niche || 'negocio'}
-AUDIENCIA: ${brandContext.targetAudience || 'general'}
-ESTILO: ${styleDesc}
-${overallBrief ? `CONTEXTO: ${overallBrief}` : ''}
-${brandContext.colorPalette ? `PALETA: ${brandContext.colorPalette}` : ''}
+Slide position: ${position}
+Headline: "${headline}"
+SubHeadline: "${subHeadline}"
+Brand: ${brandContext.name || 'brand'} (${brandContext.niche || 'business'})
+Style: ${styleHint}
+${overallBrief ? `Context: ${overallBrief}` : ''}
+${brandContext.colorPalette ? `Colors: ${brandContext.colorPalette}` : ''}
 
-REGLAS:
-- El prompt debe estar en INGLÉS
-- Describe escena, iluminación, composición y atmósfera que complementen el headline
-- Fotografía profesional de alta producción
-- NO incluyas texto en el prompt (el texto se renderiza por separado)
-- Máximo 2 oraciones precisas
-
-Devuelve SOLO el prompt visual en inglés, sin comentarios ni comillas.` }] }],
+Return ONLY the visual prompt in English. Max 2 sentences. No text in the image.` }] }],
     }),
     15000,
     "Visual Prompt Generation Timeout"
   );
-  return response.text?.trim() || `Professional advertising scene for ${brandContext.niche || 'business'}, cinematic lighting, high-end production quality`;
+  return response.text?.trim() || `Professional advertising scene for ${brandContext.niche || 'business'}, ${styleHint}, high-end production quality`;
 };
+
+// ─── Generate Video (stub) ───────────────────────────────────
 
 export const generateVideo = async (prompt: string, images: string[]): Promise<string> => {
   console.log("Video generation not implemented in this version.");
