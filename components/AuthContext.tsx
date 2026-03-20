@@ -1,87 +1,40 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
-import { supabase, getProfile, Profile } from '../services/supabase';
+import { supabase } from '../services/supabase';
 
 interface AuthContextType {
     user: User | null;
-    profile: Profile | null;
     loading: boolean;
     signOut: () => Promise<void>;
-    refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const refreshProfile = async () => {
-        if (user) {
-            try {
-                // Use a local timeout for individual refresh calls
-                const { data } = await Promise.race([
-                    getProfile(user.id),
-                    new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Refresh Timeout")), 5000))
-                ]);
-                if (data) setProfile(data);
-            } catch (err) {
-                console.warn("Profile refresh missed (will retry on next event):", err);
-            }
-        }
-    };
-
     useEffect(() => {
-        // Initial session check
         const initSession = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
-                const currentUser = session?.user ?? null;
-                setUser(currentUser);
-
-                // Don't wait for profile to stop the loading spinner
-                setLoading(false);
-
-                if (currentUser) {
-                    const { data } = await getProfile(currentUser.id);
-                    if (data) setProfile(data);
-                }
+                setUser(session?.user ?? null);
             } catch (err) {
                 console.error("Auth init error:", err);
+            } finally {
                 setLoading(false);
             }
         };
 
         initSession();
 
-        // Safety timeout: Never stay in loading state for more than 5 seconds
-        const timer = setTimeout(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
             setLoading(false);
-        }, 5000);
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log("Auth Event:", event);
-            const currentUser = session?.user ?? null;
-            setUser(currentUser);
-
-            if (currentUser) {
-                const { data } = await getProfile(currentUser.id);
-                setProfile(data);
-            } else {
-                setProfile(null);
-            }
-
-            setLoading(false);
-            clearTimeout(timer);
         });
 
-        return () => {
-            subscription.unsubscribe();
-            clearTimeout(timer);
-        };
+        return () => subscription.unsubscribe();
     }, []);
 
     const signOut = async () => {
@@ -89,7 +42,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     return (
-        <AuthContext.Provider value={{ user, profile, loading, signOut, refreshProfile }}>
+        <AuthContext.Provider value={{ user, loading, signOut }}>
             {children}
         </AuthContext.Provider>
     );

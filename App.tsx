@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { AdProject, GenerationStatus, Slide, ContentIntent, VisualStyle, AspectRatio, GenerationMode, BrandContext } from './types';
 import { generateAdCopy, generateSlideImage, enhancePrompt, regenerateSlideCopy, editImage, generateVideo, getApiKey, generateVisualPromptForSlide } from './services/geminiService';
 import { getHistory, saveToHistory, deleteFromHistory } from './services/historyService';
-import { supabase, useCredit } from './services/supabase';
+import { supabase } from './services/supabase';
 import { useAuth } from './components/AuthContext';
 import { Login } from './components/Login';
 import SlideCard from './components/SlideCard';
@@ -71,7 +71,7 @@ const CustomSelect: React.FC<{
 };
 
 const App: React.FC = () => {
-    const { user, profile, loading, signOut, refreshProfile } = useAuth();
+    const { user, loading, signOut } = useAuth();
     const [hasKey, setHasKey] = useState(false);
     const [prompt, setPrompt] = useState('');
     const [genMode, setGenMode] = useState<GenerationMode>('single-image');
@@ -281,22 +281,11 @@ const App: React.FC = () => {
     const handleGenerate = async () => {
         if (!prompt.trim() || !user) return;
 
-        // Check credits
-        if (profile && profile.credits <= 0) {
-            setError("No tienes créditos suficientes. Tu límite mensual de 50 ha sido alcanzado.");
-            return;
-        }
-
         setStatus('generating-copy');
         setError(null);
         setActiveSlideIdx(0);
 
         try {
-            // Deduct credit (blocks here)
-            await useCredit(user.id);
-
-            // Trigger profile refresh in background so it doesn't stall the main AI flow
-            refreshProfile().catch(console.error);
 
             let copyResult: any;
             if (genMode === 'manual-carousel') {
@@ -746,9 +735,8 @@ const App: React.FC = () => {
                         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-accent-primary/20 to-accent-secondary/20 flex items-center justify-center border border-white/10 uppercase font-black text-xs text-accent-primary shrink-0">
                             {user?.email?.[0]}
                         </div>
-                        <div className="hidden md:flex flex-col">
-                            <span className="text-[10px] font-black tracking-widest text-neutral-500 uppercase">Credits</span>
-                            <span className="text-sm font-black text-bone-white">{profile?.credits ?? 0}</span>
+                        <div className="hidden md:flex flex-col overflow-hidden">
+                            <span className="text-[10px] font-bold text-neutral-400 truncate max-w-[120px]">{user?.email}</span>
                         </div>
                     </div>
                     <XCircle className="hidden md:block w-4 h-4 text-neutral-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all" />
