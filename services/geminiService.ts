@@ -399,11 +399,11 @@ You MUST render the following text DIRECTLY ON the image as part of the design. 
     fullPrompt += ` CHARACTER IDENTITY REFERENCE: Use the reference photo ONLY to capture the person's IDENTITY (face shape, skin tone, hair type, facial features). However, you MUST generate the person in a COMPLETELY DIFFERENT pose, expression, camera angle, and body position than the reference photo. The person should look natural and dynamic in the scene described — NOT a static clone of the reference. Vary head tilt, gaze direction, facial expression, and body language.`;
   }
 
-  // Image generation models — ordered by preference/availability
+  // Nano Banana models (Google native image generation) — ordered by quality
   const imgModels = [
-    'models/gemini-3.0-flash-preview-image-generation',
-    'models/gemini-2.0-flash-preview-image-generation',
-    'models/gemini-2.5-flash-preview-image-generation',
+    'models/gemini-3-pro-image-preview',       // Nano Banana Pro — highest quality
+    'models/gemini-3.1-flash-image-preview',   // Nano Banana 2 — fast, high volume
+    'models/gemini-2.5-flash-image',           // Nano Banana — speed & efficiency
   ];
 
   const configObj: any = {
@@ -553,9 +553,9 @@ export const editImage = async (base64Image: string, prompt: string): Promise<st
   const base64Data = base64Image.split(',')[1] || base64Image;
 
   const editModels = [
-    'models/gemini-3.0-flash-preview-image-generation',
-    'models/gemini-2.0-flash-preview-image-generation',
-    'models/gemini-2.5-flash-preview-image-generation',
+    'models/gemini-3-pro-image-preview',       // Nano Banana Pro — highest quality
+    'models/gemini-3.1-flash-image-preview',   // Nano Banana 2 — fast
+    'models/gemini-2.5-flash-image',           // Nano Banana — fallback
   ];
 
   for (const model of editModels) {
