@@ -119,7 +119,7 @@ export const enhancePrompt = async (rawPrompt: string): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey });
   const response = await withTimeout(
     ai.models.generateContent({
-      model: "models/gemini-2.0-flash",
+      model: "models/gemini-2.5-flash",
       contents: [{ parts: [{ text: `Optimiza este brief publicitario para que la IA genere mejores imágenes y textos de venta. Mantén el mismo objetivo de negocio, agrega contexto visual y emocional. Responde SOLO con el prompt optimizado en español.\n\nBrief original: "${rawPrompt}"` }] }],
     }),
     15000,
@@ -254,8 +254,8 @@ COHERENCIA VISUAL: Todos los slides deben sentirse como parte de la MISMA campa�
 
   // ── Model cascade (2 models) ──
   const models = [
-    "models/gemini-2.5-flash-preview-04-17",
-    "models/gemini-2.0-flash",
+    "models/gemini-2.5-flash",
+    "models/gemini-2.5-flash-lite",
   ];
 
   for (const model of models) {
@@ -460,7 +460,7 @@ export const regenerateSlideCopy = async (
 
   const response = await withTimeout(
     ai.models.generateContent({
-      model: "models/gemini-2.0-flash",
+      model: "models/gemini-2.5-flash",
       contents: [{ parts: [{ text: `Reescribe el copy publicitario para este slide. Todo en español.
 
 Campaña: ${projectGoal}
@@ -488,7 +488,7 @@ export const magicRewrite = async (text: string, tone: string): Promise<string> 
   try {
     const response = await withTimeout(
       ai.models.generateContent({
-        model: "models/gemini-1.5-flash",
+        model: "models/gemini-2.5-flash-lite",
         contents: [{ parts: [{ text: `Rewrite: "${text}" to be ${tone}. Spanish. Return ONLY text.` }] }],
       }),
       10000,
@@ -568,7 +568,7 @@ export const generateVisualPromptForSlide = async (
 
   const response = await withTimeout(
     ai.models.generateContent({
-      model: "models/gemini-2.0-flash",
+      model: "models/gemini-2.5-flash",
       contents: [{ parts: [{ text: `Generate a detailed visual prompt in English for an advertising image.
 
 Slide position: ${position}

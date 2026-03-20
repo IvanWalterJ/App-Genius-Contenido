@@ -406,7 +406,6 @@ const App: React.FC = () => {
                 let imageError: string | undefined = undefined;
 
                 try {
-                    const isCarouselMode = genMode === 'carousel' || genMode === 'manual-carousel';
                     imageUrl = await generateSlideImage(
                         updatedSlides[i].visualPrompt,
                         style,
@@ -414,9 +413,9 @@ const App: React.FC = () => {
                         {
                             characterReference: refImages.length > 0 ? refImages : undefined,
                             styleReference: designReferences.length > 0 ? designReferences : undefined,
-                            headline: isCarouselMode ? undefined : updatedSlides[i].headline,
-                            subHeadline: isCarouselMode ? undefined : updatedSlides[i].subHeadline,
-                            headlineFont: isCarouselMode ? undefined : updatedSlides[i].headlineFont,
+                            headline: updatedSlides[i].headline,
+                            subHeadline: updatedSlides[i].subHeadline,
+                            headlineFont: updatedSlides[i].headlineFont,
                             brandColors: brandContext.colorPalette || undefined,
                         }
                     );
@@ -472,7 +471,6 @@ const App: React.FC = () => {
         const slideIdx = activeSlideIdx;
         const currentSlide = project.slides[slideIdx];
         try {
-            const isCarouselMode = project.mode === 'carousel' || project.mode === 'manual-carousel';
             const newUrl = await generateSlideImage(
                 currentSlide.visualPrompt,
                 project.visualStyle,
@@ -480,9 +478,9 @@ const App: React.FC = () => {
                 {
                     characterReference: refImages.length > 0 ? refImages : undefined,
                     styleReference: designReferences.length > 0 ? designReferences : undefined,
-                    headline: isCarouselMode ? undefined : currentSlide.headline,
-                    subHeadline: isCarouselMode ? undefined : currentSlide.subHeadline,
-                    headlineFont: isCarouselMode ? undefined : currentSlide.headlineFont,
+                    headline: currentSlide.headline,
+                    subHeadline: currentSlide.subHeadline,
+                    headlineFont: currentSlide.headlineFont,
                     brandColors: project.brandContext?.colorPalette || undefined,
                 }
             );
@@ -861,68 +859,15 @@ const App: React.FC = () => {
                                         />
                                     </div>
 
-                                    {/* PHOTOSHOOT & REFERENCES (merged into Business DNA) */}
-                                    <div className="space-y-6 pt-6 border-t border-white/5">
-                                        <div className="flex items-center gap-3">
-                                            <Layers className="w-5 h-5 text-accent-secondary" />
-                                            <div>
-                                                <h3 className="text-sm font-black uppercase tracking-widest text-bone-white">Referencias Visuales</h3>
-                                                <p className="text-[10px] text-neutral-500 mt-0.5">Sube imágenes para que la IA aprenda tu estilo</p>
+                                    {/* Knowledge Base */}
+                                    <div className="space-y-2 pt-6 border-t border-white/5">
+                                        <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Base de Conocimiento (PDF/TXT)</label>
+                                        <div onClick={() => docInputRef.current?.click()} className={`w-full py-3 px-4 border border-dashed rounded-xl flex items-center gap-3 cursor-pointer transition-all ${knowledgeBase ? 'bg-green-500/10 border-green-500/50' : 'bg-deep-surface border-white/10 hover:border-white/20'}`}>
+                                            <div className={`p-2 rounded-lg ${knowledgeBase ? 'bg-green-500/20' : 'bg-black/50'}`}>
+                                                {knowledgeBase ? <Check className="w-4 h-4 text-green-400" /> : <FileText className="w-4 h-4 text-neutral-400" />}
                                             </div>
-                                        </div>
-
-                                        {/* Design References */}
-                                        <div className="space-y-3">
-                                            <div className="flex justify-between items-center">
-                                                <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Estilo Visual / Moodboard</label>
-                                                <span className="text-[10px] bg-accent-secondary/10 text-accent-secondary px-2 py-1 rounded-md">{designReferences.length} imgs</span>
-                                            </div>
-                                            <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
-                                                <div onClick={() => designInputRef.current?.click()} className="aspect-square bg-deep-surface hover:bg-[#2A2A2A] border border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group">
-                                                    <Upload className="w-5 h-5 text-accent-secondary mb-1 group-hover:scale-110 transition-transform" />
-                                                    <span className="text-[9px] font-bold text-accent-secondary text-center px-1">Subir</span>
-                                                </div>
-                                                {designReferences.map((img, idx) => (
-                                                    <div key={idx} className="aspect-square rounded-xl overflow-hidden relative group border border-white/10">
-                                                        <img src={img} className="w-full h-full object-cover" alt="Estilo" />
-                                                        <button onClick={(e) => { e.stopPropagation(); setDesignReferences(prev => prev.filter((_, i) => i !== idx)); }} className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-red-500 rounded-md text-white opacity-0 group-hover:opacity-100 transition-all"><X className="w-3 h-3" /></button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <input type="file" ref={designInputRef} className="hidden" accept="image/*" multiple onChange={handleDesignRefUpload} />
-                                        </div>
-
-                                        {/* Character References */}
-                                        <div className="space-y-3">
-                                            <div className="flex justify-between items-center">
-                                                <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Personaje / Rostro Consistente</label>
-                                                <span className="text-[10px] bg-accent-primary/10 text-accent-primary px-2 py-1 rounded-md">{refImages.length} imgs</span>
-                                            </div>
-                                            <div className="grid grid-cols-4 sm:grid-cols-5 gap-3">
-                                                <div onClick={() => fileInputRef.current?.click()} className="aspect-square bg-deep-surface hover:bg-[#2A2A2A] border border-white/10 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all group">
-                                                    <Upload className="w-5 h-5 text-accent-primary mb-1 group-hover:scale-110 transition-transform" />
-                                                    <span className="text-[9px] font-bold text-accent-primary text-center px-1">Subir</span>
-                                                </div>
-                                                {refImages.map((img, idx) => (
-                                                    <div key={idx} className="aspect-square rounded-xl overflow-hidden relative group border border-white/10">
-                                                        <img src={img} className="w-full h-full object-cover" alt="Persona" />
-                                                        <button onClick={(e) => { e.stopPropagation(); setRefImages(prev => prev.filter((_, i) => i !== idx)); }} className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-red-500 rounded-md text-white opacity-0 group-hover:opacity-100 transition-all"><X className="w-3 h-3" /></button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleRefImageUpload} />
-                                        </div>
-
-                                        {/* Knowledge Base */}
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-black uppercase tracking-widest text-neutral-400">Base de Conocimiento (PDF/TXT)</label>
-                                            <div onClick={() => docInputRef.current?.click()} className={`w-full py-3 px-4 border border-dashed rounded-xl flex items-center gap-3 cursor-pointer transition-all ${knowledgeBase ? 'bg-green-500/10 border-green-500/50' : 'bg-deep-surface border-white/10 hover:border-white/20'}`}>
-                                                <div className={`p-2 rounded-lg ${knowledgeBase ? 'bg-green-500/20' : 'bg-black/50'}`}>
-                                                    {knowledgeBase ? <Check className="w-4 h-4 text-green-400" /> : <FileText className="w-4 h-4 text-neutral-400" />}
-                                                </div>
-                                                <p className={`text-xs font-bold truncate ${knowledgeBase ? 'text-green-300' : 'text-neutral-400'}`}>{kbFileName || "Subir Documento"}</p>
-                                                <input type="file" ref={docInputRef} className="hidden" accept=".txt,.md,.json,.csv,.pdf,.doc,.docx" onChange={handleKnowledgeBaseUpload} />
-                                            </div>
+                                            <p className={`text-xs font-bold truncate ${knowledgeBase ? 'text-green-300' : 'text-neutral-400'}`}>{kbFileName || "Subir Documento"}</p>
+                                            <input type="file" ref={docInputRef} className="hidden" accept=".txt,.md,.json,.csv,.pdf,.doc,.docx" onChange={handleKnowledgeBaseUpload} />
                                         </div>
                                     </div>
                                 </div>
@@ -1110,29 +1055,54 @@ const App: React.FC = () => {
                                             </div>
                                             {refImages.length === 0 && (
                                                 <p className="text-[10px] text-neutral-600 border-t border-white/5 pt-3">
-                                                    💡 Para consistencia de personajes entre slides, sube una foto de referencia en <button onClick={() => setSidebarMode('brands')} className="text-accent-primary underline">Business DNA</button>
+                                                    💡 Para consistencia de personajes entre slides, sube una foto con el botón "Personaje" arriba.
                                                 </p>
                                             )}
                                         </div>
                                     </div>
                                 )}
 
-                                {/* Brand DNA status bar */}
-                                <div className="flex flex-wrap items-center gap-3 mt-4 w-full max-w-[800px]">
-                                    {brandContext.name || brandContext.niche ? (
-                                        <div className="flex items-center gap-2 text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-1.5 rounded-full">
-                                            <Check className="w-3 h-3" /> Business DNA activo: {brandContext.name || brandContext.niche}
-                                        </div>
-                                    ) : (
-                                        <button onClick={() => setSidebarMode('brands')} className="flex items-center gap-2 text-[10px] font-bold text-neutral-500 hover:text-accent-primary border border-white/5 hover:border-accent-primary/30 px-3 py-1.5 rounded-full transition-all">
-                                            <Settings className="w-3 h-3" /> Configura tu Business DNA para mejores resultados →
+                                {/* References & Brand DNA bar */}
+                                <div className="w-full max-w-[800px] mt-4 space-y-3">
+                                    {/* Visual References */}
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        {/* Style Reference Button + Thumbnails */}
+                                        <button onClick={() => designInputRef.current?.click()} className={`flex items-center gap-2 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-all ${designReferences.length > 0 ? 'text-accent-secondary bg-accent-secondary/10 border-accent-secondary/30 hover:bg-accent-secondary/20' : 'text-neutral-500 border-white/10 hover:text-accent-secondary hover:border-accent-secondary/30'}`}>
+                                            <Layers className="w-3 h-3" /> {designReferences.length > 0 ? `${designReferences.length} ref. visual` : 'Referencia Visual'}
                                         </button>
-                                    )}
-                                    {(designReferences.length > 0 || refImages.length > 0) && (
-                                        <div className="flex items-center gap-2 text-[10px] font-bold text-accent-secondary bg-accent-secondary/10 border border-accent-secondary/20 px-3 py-1.5 rounded-full">
-                                            <Layers className="w-3 h-3" /> {designReferences.length + refImages.length} referencia(s) activa(s)
-                                        </div>
-                                    )}
+                                        <input type="file" ref={designInputRef} className="hidden" accept="image/*" multiple onChange={handleDesignRefUpload} />
+                                        {designReferences.map((img, idx) => (
+                                            <div key={`dr-${idx}`} className="relative group">
+                                                <img src={img} className="w-7 h-7 rounded-lg object-cover border border-white/10" alt="Ref" />
+                                                <button onClick={() => setDesignReferences(prev => prev.filter((_, i) => i !== idx))} className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-black/80 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><X className="w-2 h-2 text-white" /></button>
+                                            </div>
+                                        ))}
+
+                                        {/* Character Reference Button + Thumbnails */}
+                                        <button onClick={() => fileInputRef.current?.click()} className={`flex items-center gap-2 text-[10px] font-bold px-3 py-1.5 rounded-full border transition-all ${refImages.length > 0 ? 'text-accent-primary bg-accent-primary/10 border-accent-primary/30 hover:bg-accent-primary/20' : 'text-neutral-500 border-white/10 hover:text-accent-primary hover:border-accent-primary/30'}`}>
+                                            <Upload className="w-3 h-3" /> {refImages.length > 0 ? `${refImages.length} personaje` : 'Personaje'}
+                                        </button>
+                                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleRefImageUpload} />
+                                        {refImages.map((img, idx) => (
+                                            <div key={`cr-${idx}`} className="relative group">
+                                                <img src={img} className="w-7 h-7 rounded-full object-cover border border-white/10" alt="Persona" />
+                                                <button onClick={() => setRefImages(prev => prev.filter((_, i) => i !== idx))} className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-black/80 hover:bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><X className="w-2 h-2 text-white" /></button>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Brand DNA status */}
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        {brandContext.name || brandContext.niche ? (
+                                            <div className="flex items-center gap-2 text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-500/20 px-3 py-1.5 rounded-full">
+                                                <Check className="w-3 h-3" /> Business DNA activo: {brandContext.name || brandContext.niche}
+                                            </div>
+                                        ) : (
+                                            <button onClick={() => setSidebarMode('brands')} className="flex items-center gap-2 text-[10px] font-bold text-neutral-500 hover:text-accent-primary border border-white/5 hover:border-accent-primary/30 px-3 py-1.5 rounded-full transition-all">
+                                                <Settings className="w-3 h-3" /> Configura tu Business DNA para mejores resultados →
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {error && (
