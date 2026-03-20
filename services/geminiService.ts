@@ -309,7 +309,7 @@ Todos los slides deben sentirse como PARTE DE LA MISMA CAMPAÑA. Esto significa:
     "models/gemini-2.0-flash",
     "models/gemini-2.5-flash-preview-04-17",
     "models/gemini-1.5-flash",
-    "models/gemini-1.5-pro"
+    "models/gemini-2.0-flash-lite"
   ];
 
   for (const model of models) {
@@ -399,16 +399,11 @@ You MUST render the following text DIRECTLY ON the image as part of the design. 
     fullPrompt += ` CHARACTER IDENTITY REFERENCE: Use the reference photo ONLY to capture the person's IDENTITY (face shape, skin tone, hair type, facial features). However, you MUST generate the person in a COMPLETELY DIFFERENT pose, expression, camera angle, and body position than the reference photo. The person should look natural and dynamic in the scene described — NOT a static clone of the reference. Vary head tilt, gaze direction, facial expression, and body language.`;
   }
 
-  // Image generation models — ordered by quality/availability
-  // When text is baked, prioritize nano-banana (best text rendering)
-  const imgModels = (cleanHeadline && cleanHeadline.length > 0) ? [
-    'models/nano-banana-2-pro-preview',
-    'models/gemini-3.1-flash-image-preview',
-    'models/gemini-2.5-flash-image',
-  ] : [
-    'models/gemini-3.1-flash-image-preview',
-    'models/nano-banana-2-pro-preview',
-    'models/gemini-2.5-flash-image',
+  // Image generation models — ordered by preference/availability
+  const imgModels = [
+    'models/gemini-3.0-flash-preview-image-generation',
+    'models/gemini-2.0-flash-preview-image-generation',
+    'models/gemini-2.5-flash-preview-image-generation',
   ];
 
   const configObj: any = {
@@ -558,9 +553,9 @@ export const editImage = async (base64Image: string, prompt: string): Promise<st
   const base64Data = base64Image.split(',')[1] || base64Image;
 
   const editModels = [
-    'models/gemini-3.1-flash-image-preview',
-    'models/nano-banana-pro-preview',
-    'models/gemini-2.5-flash-image',
+    'models/gemini-3.0-flash-preview-image-generation',
+    'models/gemini-2.0-flash-preview-image-generation',
+    'models/gemini-2.5-flash-preview-image-generation',
   ];
 
   for (const model of editModels) {
