@@ -77,7 +77,7 @@ const App: React.FC = () => {
     const [genMode, setGenMode] = useState<GenerationMode>('single-image');
     const [intent, setIntent] = useState<ContentIntent>('paid-ads');
     const [style, setStyle] = useState<VisualStyle>('auto');
-    const [aspectRatio, setAspectRatio] = useState<AspectRatio>('3:4');
+    const [aspectRatio, setAspectRatio] = useState<AspectRatio>('4:5');
     const [slideCount, setSlideCount] = useState<number>(6); // number of slides/images to generate
     const [manualSlides, setManualSlides] = useState<Array<{ headline: string; subHeadline: string; cta?: string }>>([
         { headline: '', subHeadline: '' },
@@ -715,7 +715,7 @@ const App: React.FC = () => {
                         <Sparkles className="w-5 h-5 shrink-0" />
                         <span className="text-xs font-bold uppercase tracking-widest hidden md:block">Campaigns</span>
                     </button>
-                    <button onClick={() => { setSidebarMode('carousels'); setProject(null); setGenMode('carousel'); }} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'carousels' ? 'bg-accent-primary/20 text-accent-primary shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
+                    <button onClick={() => { setSidebarMode('carousels'); setProject(null); setGenMode('carousel'); setAspectRatio('4:5'); }} className={`flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${sidebarMode === 'carousels' ? 'bg-accent-primary/20 text-accent-primary shadow-sm' : 'text-neutral-500 hover:text-bone-white hover:bg-white/5'}`}>
                         <Layers className="w-5 h-5 shrink-0" />
                         <span className="text-xs font-bold uppercase tracking-widest hidden md:block">Carousels</span>
                     </button>
@@ -871,7 +871,7 @@ const App: React.FC = () => {
                                             .slice(0, 20)
                                             .map((item, i) => (
                                                 <div key={i} onClick={() => { loadProject(item.p); setSidebarMode('create'); }} className="bg-deep-surface border border-white/5 rounded-2xl p-3 cursor-pointer hover:border-white/20 transition-all hover:scale-[1.02] group shadow-xl">
-                                                    <div className="aspect-[3/4] rounded-xl overflow-hidden mb-3 bg-black/50 relative">
+                                                    <div className="aspect-[4/5] rounded-xl overflow-hidden mb-3 bg-black/50 relative">
                                                         {item.backgroundImageUrl ? (
                                                             <img src={item.backgroundImageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                                                         ) : (
@@ -930,7 +930,11 @@ const App: React.FC = () => {
                                             {/* Format Selector */}
                                             <CustomSelect
                                                 value={genMode}
-                                                onChange={(v) => { setGenMode(v as GenerationMode); setSlideCount(v === 'single-image' ? 1 : 6); }}
+                                                onChange={(v) => { 
+                                                    setGenMode(v as GenerationMode); 
+                                                    setSlideCount(v === 'single-image' ? 1 : 6); 
+                                                    if (v === 'carousel' || v === 'manual-carousel') setAspectRatio('4:5');
+                                                }}
                                                 options={sidebarMode === 'carousels' ? [
                                                     { value: 'carousel', label: 'Carrusel (IA)' },
                                                     { value: 'manual-carousel', label: 'Carrusel Manual' },
@@ -953,6 +957,7 @@ const App: React.FC = () => {
                                                 onChange={(v) => setAspectRatio(v as AspectRatio)}
                                                 options={[
                                                     { value: '1:1', label: 'Feed (1:1)' },
+                                                    { value: '4:5', label: 'Carrusel (4:5)' },
                                                     { value: '3:4', label: 'Portrait (3:4)' },
                                                     { value: '9:16', label: 'Story (9:16)' },
                                                 ]}
@@ -1107,7 +1112,7 @@ const App: React.FC = () => {
                                         {history && history.length > 0 ? (
                                             history.slice(0, 4).map((proj) => (
                                                 <div key={proj.id} onClick={() => loadProject(proj)} className="bg-deep-surface border border-white/5 rounded-2xl p-3 cursor-pointer hover:border-white/20 transition-all hover:scale-[1.02] group">
-                                                    <div className="aspect-[3/4] rounded-xl overflow-hidden mb-3 bg-black/50 relative">
+                                                    <div className="aspect-[4/5] rounded-xl overflow-hidden mb-3 bg-black/50 relative">
                                                         {proj.slides[0]?.backgroundImageUrl ? (
                                                             <img src={proj.slides[0].backgroundImageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                                                         ) : (

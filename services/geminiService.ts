@@ -299,7 +299,7 @@ COHERENCIA VISUAL: Todos los slides deben sentirse como parte de la MISMA campa√
 export const generateSlideImage = async (
   visualPrompt: string,
   style: VisualStyle,
-  aspectRatio: string = "3:4",
+  aspectRatio: string = "4:5",
   options: {
     characterReference?: string | string[];
     styleReference?: string | string[];
